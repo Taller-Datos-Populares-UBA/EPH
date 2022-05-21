@@ -456,8 +456,18 @@ familias_casos %>% filter(prop>1/100) %>% ggplot(aes(y=fam,x=prop)) + geom_col()
 ```
 
 ```{r}
+familia_a_fila <- function(fami){
+  
+}
 
-familias_casos %>% separate(fam,into = paste('member',1:15,sep=''))
 
+famlvls <- familias_casos$fam %>% str_split(', ') %>% unlist %>% unique
+
+tabifam <- familias_casos$fam %>% str_split(', ') %>% lapply(factor,levels = famlvls) %>% lapply(table) %>% do.call(rbind,.) 
+
+cuentas <- familias_casos$prop %*% tabifam
+
+barplot(cuentas,las=2,cex.names = .7)
+abline(h=0.5)
 ```
 
