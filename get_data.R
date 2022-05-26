@@ -1,7 +1,7 @@
 # Linea para instalar los packages de EPH
-
 install.packages('eph', dependencies = TRUE)
 
+#importo librerías
 library(eph)
 library(dplyr)
 library(tidyr)
@@ -9,21 +9,28 @@ library(purrr)
 library(ggplot2)
 library("rstudioapi")
 
-
+#seteo el lugar correcto donde correr el codigo
 setwd(dirname(getSourceEditorContext()$path))
 getwd()
 
-dato_21_3 <- get_microdata(year=2021, trimester=3, type='individual', destfile="EPH-3-2021.csv")
-dato_21_3 <- organize_labels(df=dato_21_3, type='individual')
+#funcion que carga la base de datos y arma el string del archivo
+cargar_base <- function(año, periodo, tipo){
+  string <- paste("./data/EPH", periodo, año, tipo, sep="-")
+  string <- paste(string, "RDS", sep=".")
+  if(año>2003 || (año==2003 && periodo>2)){#en 2003 estan solo los trimestres 3 y 4
+    get_microdata(year=año, trimester=periodo, type=tipo, destfile=string)
+  }else{
+    get_microdata(year=año, wave=periodo, type=tipo, destfile=string)
+  }
+}
 
-dato_21_3 %>% View
-#PP08D1 ¿Cuánto cobró por ese mes?
-#CH15 donde nació
-#ESTADO 0 = Entrevista individual no realizada (norespuesta al cuestionario individual)
-       #1 = Ocupado
-       #2 = Desocupado
-       #3 = Inactivo
-       #4 = Menor de 10 años
-dato_21_3
-sort(sample(100))
-?get_microdata
+df <- cargar_base(2003, 4, "individual")#cargamos la base
+df <- organize_labels(df=df, type='individual')#organizamos los nombres de las columnas
+df %>% View #mostrarlo en un formato lindo
+
+#funcion que se fija la fecha actual y busca la última base de datos disponible
+ultima_base <- function(tipo){#incompleta
+  trimestre <- lubridate::quarter(Sys.Date())
+  año <- lubridate::year(Sys.Date())
+}
+
