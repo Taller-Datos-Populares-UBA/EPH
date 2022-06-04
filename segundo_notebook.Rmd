@@ -78,14 +78,14 @@ individual_03to22 <- bind_rows(individual_03to15,individual_16to22)
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 rm(list=setdiff(ls(),'individual_03to22'))
-closeAllConnections()
+#closeAllConnections()
 gc()
 ```
 
 Veamos el dataset obtenido:
 
 ```{r}
-individual_03to22 %>% glimpse
+individual_03to22 %>% glimpse()
 ```
 
 ## Renombramos variables
@@ -344,26 +344,6 @@ Veamos como se relacionan la edad y el género con el rol de la persona en el ho
 
 ```{r message=FALSE, warning=FALSE}
 individual_03to22 %>% 
-  filter(EDAD > 0 & EDAD < 100) %>%
-  mutate(SEXO = case_when(
-    CH04 == 1 ~ 'M', 
-    CH04 == 2 ~ 'F', 
-    TRUE ~ 'N/A')) %>% 
-  filter(SEXO != 'N/A') %>% 
-  mutate(ROL_HOGAR = case_when(
-    CH03 == 1 ~ 'Jefe',
-    CH03 == 2 ~ 'Conyuge',
-    CH03 == 3 ~ 'Hije',
-    CH03 == 4 ~ 'Yerno/nuera',
-    CH03 == 5 ~ 'Niete',
-    CH03 == 6 ~ 'Madre/Padre',
-    CH03 == 7 ~ 'Suegrx',
-    CH03 == 8 ~ 'Hermane',
-    CH03 == 9 ~ 'Otro fliar',
-    CH03 == 10 ~ 'No fliar',
-    TRUE ~ 'N/A'
-  )) %>% 
-  mutate(ROL_HOGAR = factor(ROL_HOGAR)) %>%
   ggplot(aes(x=EDAD)) +
   geom_histogram(aes(y = ..density..)) + facet_wrap(~ ROL_HOGAR,nrow=2)
 ```
@@ -373,32 +353,13 @@ Este gráfico tiene un montón de información sobre la edad de cada rol. Le jef
 
 ```{r message=FALSE, warning=FALSE}
 individual_03to22 %>% 
-  filter(EDAD > 0 & EDAD < 100) %>%
-  mutate(SEXO = case_when(
-    CH04 == 1 ~ 'M', 
-    CH04 == 2 ~ 'F', 
-    TRUE ~ 'N/A')) %>% 
-  filter(SEXO != 'N/A') %>% 
-  mutate(ROL_HOGAR = case_when(
-    CH03 == 1 ~ 'Jefe',
-    CH03 == 2 ~ 'Conyuge',
-    CH03 == 3 ~ 'Hije',
-    CH03 == 4 ~ 'Yerno/nuera',
-    CH03 == 5 ~ 'Niete',
-    CH03 == 6 ~ 'Madre/Padre',
-    CH03 == 7 ~ 'Suegrx',
-    CH03 == 8 ~ 'Hermane',
-    CH03 == 9 ~ 'Otro fliar',
-    CH03 == 10 ~ 'No fliar',
-    TRUE ~ 'N/A'
-  )) %>% 
-  mutate(ROL_HOGAR = factor(ROL_HOGAR)) %>%
-  group_by(ROL_HOGAR,SEXO) %>%
+  group_by(ROL_HOGAR,GENERO) %>%
   summarize(count = n()) %>%
   group_by(ROL_HOGAR) %>%
   mutate(prop_group = count/sum(count) ) %>%
   ggplot(aes(x=ROL_HOGAR,y=prop_group)) +
-  geom_col(aes(fill=SEXO),position='dodge')
+  geom_col(aes(fill=GENERO),position='dodge') + 
+  coord_flip()
 ```
 
 Esto también es muy ilustrativo: Jefes del hogar suelen ser varones, y conyugues y madres/padres suelen ser mujeres. Hijes y Nietes son similares en cantidad. Nuevamente, se puede elaborar más.
@@ -408,45 +369,21 @@ Pongamos en relación con la categoría ocupación:
 
 ```{r message=FALSE, warning=FALSE}
 individual_03to22 %>% 
-  filter(EDAD > 0 & EDAD < 100) %>%
-  mutate(SEXO = case_when(
-    CH04 == 1 ~ 'M', 
-    CH04 == 2 ~ 'F', 
-    TRUE ~ 'N/A')) %>% 
-  filter(SEXO != 'N/A') %>% 
-  mutate(ROL_HOGAR = case_when(
-    CH03 == 1 ~ 'Jefe',
-    CH03 == 2 ~ 'Conyuge',
-    CH03 == 3 ~ 'Hije',
-    CH03 == 4 ~ 'Yerno/nuera',
-    CH03 == 5 ~ 'Niete',
-    CH03 == 6 ~ 'Madre/Padre',
-    CH03 == 7 ~ 'Suegrx',
-    CH03 == 8 ~ 'Hermane',
-    CH03 == 9 ~ 'Otro fliar',
-    CH03 == 10 ~ 'No fliar',
-    TRUE ~ 'N/A'
-  )) %>% 
-  mutate(ESTADO_C = case_when(
-    ESTADO == 1 ~ 'Ocupade',
-    ESTADO == 2 ~ 'Desocupade',
-    ESTADO == 3 ~ 'Inactive',
-    ESTADO == 4 ~ 'Menor10',
-    TRUE ~ 'N/A'
-  )) %>%
-  filter(ESTADO_C != 'N/A') %>%
-  mutate(ESTADO_C = factor(ESTADO_C)) %>%
+  filter(TRIMESTRE == 3) %>%
+  filter(GENERO != 'N/A') %>% 
+  filter(CAT_OCUP != 'N/A') %>%
   mutate(ROL_HOGAR = factor(ROL_HOGAR)) %>%
-  group_by(ESTADO_C,SEXO) %>%
+  group_by(CAT_OCUP,GENERO,ANO4) %>%
   summarize(count = n()) %>%
-  group_by(ESTADO_C) %>%
+  group_by(CAT_OCUP,ANO4) %>%
   mutate(prop_group = count/sum(count) ) %>%
-  ggplot(aes(x=ESTADO_C,y=prop_group)) +
-  geom_col(aes(fill=SEXO),position='dodge')
+  ggplot(aes(x=CAT_OCUP,y=prop_group)) +
+  geom_col(aes(fill=GENERO),position='dodge') + coord_flip() + 
+    facet_wrap(~ANO4)
 ```
 La personas ocupadas suelen ser varones y las personas inactivas mujeres. Menores de 10 años y Desocupades son similares.
 
-```{r message=FALSE, warning=FALSE}
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 individual_03to22 %>% 
   filter(EDAD > 0 & EDAD < 100) %>%
   mutate(SEXO = case_when(
@@ -491,7 +428,7 @@ También un montón para elaborar acá: sólo rescatando algunas cosas: Madre/Pa
 
 Construimos variables acorde a la tabla compartida:
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 individual_03to22 <- individual_03to22 %>% 
   mutate(ACTIVO_BIN = case_when(  # Variable ACTIVO_BIN
     ESTADO == 1 | ESTADO == 2 ~ 1, # 1 si está ocupado o descoupado
@@ -512,7 +449,7 @@ individual_03to22 <- individual_03to22 %>%
   
 ```
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 individual_03to22 <- individual_03to22 %>% 
   filter(EDAD > 0 & EDAD < 100) %>%
   mutate(SEXO = case_when(
@@ -549,7 +486,7 @@ individual_03to22 <- individual_03to22 %>%
 
 Veamos población cuentapropistas por género y edad
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 individual_03to22 %>% 
   mutate(ES_CUENTAPROPISTA = ifelse(CUENTAPROPISTA_BIN==1,'SI','NO')) %>%
   ggplot(aes(x=EDAD,color=ES_CUENTAPROPISTA,linetype = SEXO)) +
@@ -558,7 +495,7 @@ individual_03to22 %>%
 
 Cuentapropismo en función del tiempo:
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 individual_03to22 %>% 
   filter(CUENTAPROPISTA_BIN ==1 ) %>%
   ggplot(aes(x=FECHA_EPH)) +
@@ -571,7 +508,7 @@ individual_03to22 %>%
 
 ¿Cómo es la composición de una familia según la EPH? Podemos observar esto identificando para cada encuesta las distintas familias
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 individual_03to22 %>%
   filter(ANO4 == 2021) %>%
   filter(TRIMESTRE == 2) %>%
@@ -588,7 +525,7 @@ familias_casos %>% filter(prop>1/100) %>% ggplot(aes(y=fam,x=prop)) + geom_col()
 
 ```
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 familia_a_fila <- function(fami){
   
 }
@@ -608,7 +545,7 @@ abline(h=0.5)
 
 Miramos la intersección con la fecha anterior.
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 idfeph_u = individual_03to22 %>% 
   mutate(idfeph = paste(ANO4,TRIMESTRE,sep='')) %>%
   select(idfeph) %>% unlist %>% unique
