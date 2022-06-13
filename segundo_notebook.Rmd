@@ -62,7 +62,7 @@ variables_de_interes <-
     'CODUSU','NRO_HOGAR',
     'CH03','CH04','CH05','CH06',
     'ESTADO','CAT_OCUP','CAT_INAC',
-    'PP04D_COD')
+    'PP04D_COD','PONDERA')
 ```
 
 ```{r message=FALSE, warning=FALSE}
