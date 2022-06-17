@@ -19,6 +19,10 @@ genera_resumen <- function(df){
           (CATEGORIA_OCUPACION == 'CUENTAPROPISTA' & ES_PROFESIONAL),na.rm=TRUE),
       'CUENTAPROPISTAS_NO_PROFESIONALES' = sum(
         PONDERA * 
-          (CATEGORIA_OCUPACION == 'CUENTAPROPISTA' & !ES_PROFESIONAL),na.rm=TRUE)) %>% 
+          (CATEGORIA_OCUPACION == 'CUENTAPROPISTA' & !ES_PROFESIONAL),na.rm=TRUE),
+      'TFSR' = sum(
+        PONDERA * 
+          (CATEGORIA_OCUPACION == 'TRABAJADORE FLIAR S.R.'),na.rm=TRUE)
+      ) %>% 
     return()
 }

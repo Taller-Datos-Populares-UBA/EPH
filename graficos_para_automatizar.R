@@ -5,38 +5,19 @@ library(lemon)
 ## Grafico 1: 
 ### Economía popular en el tiempo:
 ### Graficamos Cuentapropistas no profesionales en el tiempo
-
+### Faltaría el resto
 individual_03.hoy %>% 
   group_by(YEAR,TRIMESTER) %>%
   genera_resumen() %>%
   mutate('FECHA' = as.Date(paste(YEAR,3*TRIMESTER,1,sep='-'))) %>% 
   ungroup() %>% 
   ggplot(aes(x=FECHA,
-         y = CUENTAPROPISTAS_NO_PROFESIONALES)) +
-  geom_pointline() 
+         y = (CUENTAPROPISTAS_NO_PROFESIONALES+TFSR)/1e6)) +
+  geom_pointline() +
+  ylab('Cuentapropistas no profesionales y T.F.S.R. [Millones]') +
+  expand_limits(y=c(0,5))
 
-## Una versión con smooth
-individual_03.hoy %>% 
-  group_by(YEAR,TRIMESTER) %>%
-  genera_resumen() %>%
-  mutate('FECHA' = as.Date(paste(YEAR,3*TRIMESTER,1,sep='-'))) %>% 
-  ungroup() %>% 
-  ggplot(aes(x=FECHA,
-             y = CUENTAPROPISTAS_NO_PROFESIONALES)) +
-  geom_point() +
-  geom_smooth()
-
-# Cuentapropistas no profesionales, por sexo
-individual_03.hoy %>% 
-  group_by(YEAR,TRIMESTER,SEXO) %>%
-  genera_resumen() %>%
-  mutate('FECHA' = as.Date(paste(YEAR,3*TRIMESTER,1,sep='-'))) %>%
-  ungroup() %>%
-  ggplot(aes(x=FECHA,
-             y = CUENTAPROPISTAS_NO_PROFESIONALES,color=SEXO)) +
-  geom_point() +
-  geom_smooth()
-
+# A este gráfico le falta poco menos de un millon de personas en 2003, probablemente por la falta de la base del MTEySS
 
 
 ## Gráfico 2: CNP/PEA
@@ -47,40 +28,44 @@ individual_03.hoy %>%
   mutate('FECHA' = as.Date(paste(YEAR,3*TRIMESTER,1,sep='-'))) %>% 
   ungroup() %>% 
   ggplot(aes(x=FECHA)) +
-  geom_pointline(aes(y = CUENTAPROPISTAS_NO_PROFESIONALES/ECONOMICAMENTE_ACTIVES,color='CNP/PEA')) +
-  geom_pointline(aes(y = CUENTAPROPISTAS_NO_PROFESIONALES/OCUPADES,color='CNP/PO')) +
+  geom_pointline(aes(y = (CUENTAPROPISTAS_NO_PROFESIONALES+TFSR)/ECONOMICAMENTE_ACTIVES,color='(CNP+TFSR)/PEA')) +
+  geom_pointline(aes(y = (CUENTAPROPISTAS_NO_PROFESIONALES+TFSR)/OCUPADES,color='(CNP+TFSR)/PO')) +
   theme(legend.position=c(.1,.8)) + 
-  ylab('PROPORCION')
+  ylab('Porcentaje') +
+  scale_y_continuous(labels=scales::percent_format()) +
+  scale_color_discrete(name='Conjuntos')+
+  expand_limits(y=c(.10,.26))
 
+# En este los valores parecen estar bien
 
-individual_03.hoy %>% 
-  group_by(YEAR,TRIMESTER) %>% 
-  summarise(INGRESO_MEDIO_OCUP_PPAL = 
-              mean(INGRESOS_OCUP_PPAL),
-            INGRESO_MEDIO_CNP_OCUP_PPAL =
-              mean(ifelse(ES_CUENTAPROPISTA_NO_PROFESIONAL,INGRESOS_OCUP_PPAL,NA),na.rm=TRUE),
-            INGRESO_MEDIO_PO_OCUP_PPAL = 
-              mean(ifelse(ESTADO=='OCUPADE',INGRESOS_OCUP_PPAL,NA),na.rm=TRUE)) %>%
-  mutate('FECHA' = as.Date(paste(YEAR,3*TRIMESTER,1,sep='-'))) %>% 
-  ungroup() %>% 
-  ggplot(aes(x=FECHA)) +
-  geom_pointline(aes(y=INGRESO_MEDIO_OCUP_PPAL,color='TOTAL'))+
-  geom_pointline(aes(y=INGRESO_MEDIO_CNP_OCUP_PPAL,color='CNP')) +
-  geom_pointline(aes(y=INGRESO_MEDIO_PO_OCUP_PPAL,color='OCUP.')) +
-  theme(legend.position=c(.1,.8))+
-  scale_color_discrete(name='Población')
-
+# Gráfico 3: gráfico de torta representando las fuentes de ingreso
 
 individual_03.hoy %>% 
-  group_by(YEAR,TRIMESTER) %>% 
-  summarise(INGRESO_MEDIO_OCUP_PPAL = 
-              mean(INGRESOS_OCUP_PPAL),
-            INGRESO_MEDIO_CNP_OCUP_PPAL =
-              mean(ifelse(ES_CUENTAPROPISTA_NO_PROFESIONAL,INGRESOS_OCUP_PPAL,NA),na.rm=TRUE),
-            INGRESO_MEDIO_PO_OCUP_PPAL = 
-              mean(ifelse(ESTADO=='OCUPADE',INGRESOS_OCUP_PPAL,NA),na.rm=TRUE)) %>%
-  mutate('FECHA' = as.Date(paste(YEAR,3*TRIMESTER,1,sep='-'))) %>% 
-  ungroup() %>% 
-  ggplot(aes(x=FECHA)) +
-  geom_pointline(aes(y=INGRESO_MEDIO_CNP_OCUP_PPAL/INGRESO_MEDIO_PO_OCUP_PPAL)) +
-  ylab('IOP CNP/ IOP PO')
+  filter(YEAR == 2021) %>% 
+  group_by(TRIMESTER) %>%
+  filter(ES_CUENTAPROPISTA_NO_PROFESIONAL | CATEGORIA_OCUPACION == 'TRABAJADORE FLIAR S.R.') %>%
+  summarise(
+    'INGRESO_LABORAL'= sum(INGRESOS_OCUP_PPAL), # FALTA INCLUIR PONDIIO
+    'AYUDA_SOCIAL' = sum(INGRESO_AYUDA_SOCIAL),
+    'JUB_Y_PENS' = sum(INGRESO_JUBILACION),
+    'NO_LABORAL' = sum(INGRESO_TOTAL_NO_LABORAL),
+      ) %>%
+  mutate('RESTO_NO_LABORAL' = NO_LABORAL-JUB_Y_PENS-AYUDA_SOCIAL) %>% 
+  summarise(INGRESO_LABORAL = mean(INGRESO_LABORAL),
+            AYUDA_SOCIAL = mean(AYUDA_SOCIAL),
+            JUB_Y_PENS = mean(JUB_Y_PENS),
+            RESTO_NO_LABORAL = mean(RESTO_NO_LABORAL)) %>%
+  pivot_longer(cols=everything()) %>% 
+  arrange(desc(name)) %>%
+  mutate(value=value/sum(value)*100) %>%
+  mutate(ypos = cumsum(value)-0.5*value) %>%
+  ggplot(aes(x="",y=value,fill=name)) +
+  geom_bar(stat='identity',width=1,color='white')+
+  coord_polar("y",start=0) +
+  theme_void() +
+  geom_text(
+    aes(y=ypos,
+        label=paste(round(value),'%')),
+    color='white',size=6,x=1.2) + 
+  scale_fill_brewer(name='Fuente de ingresos',palette='Set1') 
+  
