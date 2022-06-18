@@ -2,6 +2,7 @@
 
 source('prepara_ep.R')
 library(lemon)
+
 ## Grafico 1: 
 ### Economía popular en el tiempo:
 ### Graficamos Cuentapropistas no profesionales en el tiempo
@@ -21,7 +22,7 @@ individual_03.hoy %>%
 
 
 ## Gráfico 2: CNP/PEA
-
+# TODO: Hay un corte largo en el medio ¿ por qué es?
 individual_03.hoy %>% 
   group_by(YEAR,TRIMESTER) %>%
   genera_resumen() %>%
@@ -65,7 +66,7 @@ individual_03.hoy %>%
   theme_void() +
   geom_text(
     aes(y=ypos,
-        label=paste(round(value),'%')),
-    color='white',size=6,x=1.2) + 
+        label=paste(round(value),'%',sep='')),
+    color='black',size=4,x=1.6) + 
   scale_fill_brewer(name='Fuente de ingresos',palette='Set1') 
   

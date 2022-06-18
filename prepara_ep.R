@@ -20,7 +20,7 @@ individual_03.15 <- get_microdata(
   year = years_download[years_download<=2015],
   trimester = trimesters_download,
   type = 'individual',
-  vars = variables_ep$VAR_EPH
+  vars = variables_ep$VAR_EPH %>% setdiff(c('PONDII','PONDIIO'))
   )
 
 # Descargamos segundo periodo
@@ -144,5 +144,9 @@ individual_03.hoy <-
   )) %>%
   mutate(ES_CUENTAPROPISTA_NO_PROFESIONAL = case_when(
     CATEGORIA_OCUPACION == 'CUENTAPROPISTA' & !ES_PROFESIONAL ~ TRUE,
+    TRUE ~ FALSE
+  )) %>% 
+  mutate(ES_TFSR = case_when(
+    CATEGORIA_OCUPACION == 'TRABAJADORE FLIAR S.R.' ~ TRUE,
     TRUE ~ FALSE
   ))
