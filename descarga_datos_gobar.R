@@ -29,7 +29,7 @@ status_code(page) # # Check that the call is successful
 
 jsonAUHSMVM <- fromJSON(url)
 
-datos <- jsonAUHSMVM$data  %>% as.data.frame()
+datos <- jsonAUHSMVM$data  %>% as.data.frame(stringsAsFactors=FALSE)
 
 colnames(datos) = c('Fecha', 
                     'AUH',# Asignación universal por hije
@@ -73,13 +73,18 @@ datos %>%
 
 
 datos %>% 
+  mutate(SSC = SSC*deflactor,
+        AUH = AUH*deflactor) %>%
+  mutate( SSC = 100*SSC/first(na.omit(SSC)),
+          AUH = 100*AUH/first(na.omit(AUH))) %>%
   ggplot( aes( x = Fecha)) +
-  geom_line(aes(y = SSC*deflactor, color='SSC')) +
-  geom_line(aes(y = AUH*deflactor, color='AUH')) +
+  geom_line(aes(y = SSC, color='SSC')) +
+  geom_line(aes(y = AUH, color='AUH')) +
   xlim(as.Date(c('2016-12-01','2022-01-01'))) +
   ylab('Monto [Pesos en términos reales]') +
   theme(legend.position = c(.9,.9)) +
-  scale_color_discrete(name='Asistencia social')
+  scale_color_discrete(name='Asistencia social') +
+  ggtitle("Base dic. 2016 = 100")
 
 
 datos %>% 
