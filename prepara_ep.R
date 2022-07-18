@@ -150,3 +150,5 @@ individual_03.hoy <-
     CATEGORIA_OCUPACION == 'TRABAJADORE FLIAR S.R.' ~ TRUE,
     TRUE ~ FALSE
   ))
+
+save(individual_03.hoy,file='base_ep.RData')
