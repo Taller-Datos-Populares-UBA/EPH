@@ -1,7 +1,9 @@
 # En este script iremos almacenando los gráficos presentados en el informe de la OCEPP para conversar con Fede.
 
-source('prepara_ep.R')
+load('base_ep.RData')
+source('ep_funciones.R')
 library(lemon)
+library(eph)
 
 ## Grafico 1: 
 ### Economía popular en el tiempo:
