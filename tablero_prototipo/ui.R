@@ -26,8 +26,18 @@ shinyUI(fluidPage(
                         min = 2003, 
                         max = 2022, 
                         value = c(2003, 2022),
-                        step = 1)
+                        step = 1,
+                        sep = ''),
+            
+            selectInput(
+              inputId = "prueba",
+              label = "Seleccionar region",
+              choices = unique(individual_03.hoy$REGION),
+              multiple = TRUE,
+              selected = c()
+            )
         ),
+        
 
         # Show a plot of the generated distribution
         mainPanel(

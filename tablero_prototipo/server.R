@@ -28,8 +28,13 @@ shinyServer(function(input, output) {
         aes_plot <- aes_(x=~FECHA,
                          y = ~(CUENTAPROPISTAS_NO_PROFESIONALES+TFSR)/1e6)
       }
+      
+      regiones_elegidas <- unique(individual_03.hoy$REGION)
+      if (length(input$prueba) != 0) {
+        regiones_elegidas <-input$prueba
+      }
       individual_03.hoy %>% 
-        filter(YEAR > input$slider_años[1] & YEAR < input$slider_años[2]) %>%
+        filter(YEAR > input$slider_años[1] & YEAR < input$slider_años[2] & REGION %in% regiones_elegidas) %>%
         group_by_at(grouping_vars) %>%
         genera_resumen() %>% 
         mutate('FECHA' = as.Date(paste(YEAR,3*TRIMESTER,1,sep='-'))) %>% 
