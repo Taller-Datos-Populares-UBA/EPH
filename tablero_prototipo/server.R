@@ -1,3 +1,5 @@
+load('../base_ep.RData')
+
 #
 # This is the server logic of a Shiny web application. You can run the
 # application by clicking 'Run App' above.

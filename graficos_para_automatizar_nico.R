@@ -1,9 +1,7 @@
 # En este script iremos almacenando los gráficos presentados en el informe de la OCEPP para conversar con Fede.
 
-load('base_ep.RData')
-source('ep_funciones.R')
+source('prepara_ep.R')
 library(lemon)
-library(eph)
 
 ## Grafico 1: 
 ### Economía popular en el tiempo:
@@ -14,8 +12,8 @@ individual_03.hoy %>%
   genera_resumen() %>%
   mutate('FECHA' = as.Date(paste(YEAR,3*TRIMESTER,1,sep='-'))) %>% 
   ungroup() %>% 
-  ggplot(aes(x = FECHA,
-         y = (CUENTAPROPISTAS_NO_PROFESIONALES + TFSR) / 1e6)) +
+  ggplot(aes(x=FECHA,
+         y = (CUENTAPROPISTAS_NO_PROFESIONALES+TFSR)/1e6)) +
   geom_pointline() +
   ylab('Cuentapropistas no profesionales y T.F.S.R. [Millones]') +
   expand_limits(y=c(0,5))
@@ -73,29 +71,50 @@ individual_03.hoy %>%
   scale_fill_brewer(name='Fuente de ingresos',palette='Set1') 
   
 
-# Grafico 4: ingresos de los trabajadores de la EP de la ocupacion principal y no laborales, segun sexo. 2021 (promedio de trimestres)
 
-
+# Grafico 7: Tasa de pobreza de ocupades segun pertenencia a EP. 2021 (en trimestres).
 
 individual_03.hoy %>% 
-  filter( YEAR == 2021 ) %>% 
-  filter(ES_CUENTAPROPISTA_NO_PROFESIONAL | CATEGORIA_OCUPACION == 'TRABAJADORE FLIAR S.R.') %>%
-  group_by(SEXO,TRIMESTER) %>% 
-  summarise(
-    'INGRESO_LABORAL'= weighted.mean(INGRESOS_OCUP_PPAL,POND_ING_OCUP_PRINC), # FALTA INCLUIR PONDIIO
-    'AYUDA_SOCIAL' = weighted.mean(INGRESO_AYUDA_SOCIAL,POND_ING_OCUP_PRINC),
-    'JUB_Y_PENS' = weighted.mean(INGRESO_JUBILACION,POND_ING_OCUP_PRINC),
-    'NO_LABORAL' = weighted.mean(INGRESO_TOTAL_NO_LABORAL,POND_ING_OCUP_PRINC),
-  ) %>% 
-  mutate('RESTO_NO_LABORAL' = NO_LABORAL-JUB_Y_PENS-AYUDA_SOCIAL) %>% 
-  group_by(SEXO) %>% 
-  summarise(INGRESO_LABORAL = mean(INGRESO_LABORAL),
-            RESTO_NO_LABORAL = mean(RESTO_NO_LABORAL) + mean(JUB_Y_PENS) + mean(AYUDA_SOCIAL)) %>% 
-  pivot_longer(cols=c('INGRESO_LABORAL', 'RESTO_NO_LABORAL')) %>% 
-  ggplot(aes(x=SEXO, y= value)) +  
-  geom_col(aes(`fill = SEXO)) + 
-  scale_fill_manual(values = c('darkolivegreen1','darkolivegreen')) + 
-  ylab('') +
-  ylim(0,4e4) +
-  facet_grid(.~name) +
-  theme_bw()
+  filter(YEAR == 2021) %>%  
+  group_by(TRIMESTER) %>%
+  mutate(
+    'POBREZA' = TOTAL_INGRESO_INDIVIDUAL > 22826, 
+    'INDIGENCIA' = TOTAL_INGRESO_INDIVIDUAL > 10008,
+    'FECHA' = as.Date(paste(YEAR,3*TRIMESTER,1,sep='-'))
+  ) %>%  
+  genera_resumen_p() %>% 
+  ungroup() %>% 
+  ggplot(aes(x=TRIMESTER)) +
+  geom_pointline(aes(y = (CUENTAPROPISTAS_NO_PROFESIONALES_P + TFSR_P)/(CUENTAPROPISTAS_NO_PROFESIONALES + TFSR), color = 'EP')) +
+  geom_pointline(aes(y = (OCUPADES_P - CUENTAPROPISTAS_NO_PROFESIONALES_P - TFSR_P)/(OCUPADES - CUENTAPROPISTAS_NO_PROFESIONALES - TFSR), color = 'No EP')) + 
+  geom_pointline(aes(y = OCUPADES_P/OCUPADES, color = 'Poblacion general')) + 
+  ylab('Porcentaje') +
+  scale_y_continuous(labels=scales::percent_format()) +
+  scale_color_discrete(name='Conjuntos')+
+  expand_limits(y=c(.10,.60))
+
+
+
+
+#Grafico 8
+
+individual_03.hoy %>% 
+  filter(YEAR == 2021) %>%  
+  group_by(TRIMESTER) %>%
+  mutate(
+    'POBREZA' = TOTAL_INGRESO_INDIVIDUAL > 22826, 
+    'INDIGENCIA' = TOTAL_INGRESO_INDIVIDUAL > 10008,
+    'FECHA' = as.Date(paste(YEAR,3*TRIMESTER,1,sep='-'))
+  ) %>%  
+  genera_resumen_i() %>% 
+  ungroup() %>% 
+  ggplot(aes(x=TRIMESTER)) +
+  geom_pointline(aes(y = (CUENTAPROPISTAS_NO_PROFESIONALES_I + TFSR_I)/(CUENTAPROPISTAS_NO_PROFESIONALES + TFSR), color = 'EP')) +
+  geom_pointline(aes(y = (OCUPADES_I - CUENTAPROPISTAS_NO_PROFESIONALES_I - TFSR_I)/(OCUPADES - CUENTAPROPISTAS_NO_PROFESIONALES - TFSR), color = 'No EP')) + 
+  geom_pointline(aes(y = OCUPADES_I/OCUPADES, color = 'Poblacion general')) + 
+  ylab('Porcentaje') +
+  scale_y_continuous(labels=scales::percent_format()) +
+  scale_color_discrete(name='Conjuntos')+
+  expand_limits(y=c(.10,.60))
+
+  
