@@ -21,19 +21,34 @@ shinyServer(function(input, output) {
 
         # generate bins based on input$bins from ui.R
       if(input$group_sexo){
-        grouping_vars <- quos('SEXO','YEAR','TRIMESTER')
-        aes_plot <- aes_(x=~FECHA,
+        if (length(input$prueba) != 0) {
+          grouping_vars <- quos('SEXO','YEAR','TRIMESTER', 'REGION')
+          regiones_elegidas <-input$prueba
+          aes_plot <- aes_(x=~FECHA,
+                           y = ~(CUENTAPROPISTAS_NO_PROFESIONALES+TFSR)/POBLACION, 
+                           group = ~paste(SEXO, REGION), color =~REGION, shape = ~SEXO)
+        }
+        else {
+          regiones_elegidas <- unique(individual_03.hoy$REGION)
+          grouping_vars <- quos('SEXO','YEAR','TRIMESTER')
+          aes_plot <- aes_(x=~FECHA,
                          y = ~(CUENTAPROPISTAS_NO_PROFESIONALES+TFSR)/1e6,
                          colour = ~SEXO)
-      }else{
-        grouping_vars <- quos('YEAR','TRIMESTER')
-        aes_plot <- aes_(x=~FECHA,
-                         y = ~(CUENTAPROPISTAS_NO_PROFESIONALES+TFSR)/1e6)
+        }
       }
-      
-      regiones_elegidas <- unique(individual_03.hoy$REGION)
-      if (length(input$prueba) != 0) {
-        regiones_elegidas <-input$prueba
+      else{
+        if (length(input$prueba) != 0) {
+          grouping_vars <- quos('YEAR','TRIMESTER', 'REGION')
+          regiones_elegidas <-input$prueba
+          aes_plot <- aes_(x=~FECHA,
+                           y = ~(CUENTAPROPISTAS_NO_PROFESIONALES+TFSR)/POBLACION, group = ~REGION, color = ~REGION)
+        }
+        else {
+          regiones_elegidas <- unique(individual_03.hoy$REGION)
+          grouping_vars <- quos('YEAR','TRIMESTER')
+          aes_plot <- aes_(x=~FECHA,
+                         y = ~(CUENTAPROPISTAS_NO_PROFESIONALES+TFSR)/1e6)
+        }
       }
       individual_03.hoy %>% 
         filter(YEAR > input$slider_años[1] & YEAR < input$slider_años[2] & REGION %in% regiones_elegidas) %>%
@@ -42,7 +57,7 @@ shinyServer(function(input, output) {
         mutate('FECHA' = as.Date(paste(YEAR,3*TRIMESTER,1,sep='-'))) %>% 
         ungroup() %>% 
         ggplot(aes_plot) +
-        geom_pointline() +
+        geom_pointline(size = 2) +
         ylab('Cuentapropistas no profesionales y T.F.S.R. [Millones]') +
         theme(legend.position=c(.2,.2)) #+
         # ylim(0,5) # Por alguna razón tira error esto
