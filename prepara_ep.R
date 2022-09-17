@@ -4,6 +4,7 @@
 library(eph)
 library(tidyverse)
 source('ep_funciones.R')
+library(ggridges)
 # Variables descargadas
 ## Las levantamos desde un archivo
 variables_ep <- read_csv('variables_ep.csv')
@@ -31,9 +32,9 @@ individual_16.hoy <- get_microdata(
   vars = variables_ep$VAR_EPH
 )
 
-# Combinamo los datos de ambos periodos en un solo dataset
-individual_03.15 <- (individual_03.15$microdata) %>% bind_rows()
-individual_16.hoy <- (individual_16.hoy$microdata) %>% bind_rows()
+# Combinamos los datos de ambos periodos en un solo dataset
+#individual_03.15 <- (individual_03.15$microdata) %>% bind_rows() #comentado porque hubo cambios en la api de la eph
+#individual_16.hoy <- (individual_16.hoy$microdata) %>% bind_rows()
 individual_03.hoy <- bind_rows(individual_03.15,individual_16.hoy)
 
 rm(individual_03.15,individual_16.hoy)
@@ -49,6 +50,9 @@ individual_03.hoy <-
 # "Humanizamos" niveles 
 ## TODO: pasar esto a un formato independiente
 
+# Orden / Niveles para variable EDAD_QUINQUENIO
+niveles_quinquenio <- c(sapply(1:18, function(i) paste((i-1)*5,i*5, sep="-") ),"90 o mas")
+# Gran operacion que convierte cada variable a lenguaje humano
 individual_03.hoy <- 
   individual_03.hoy %>%
   mutate(REGION = case_when(
@@ -149,6 +153,32 @@ individual_03.hoy <-
   mutate(ES_TFSR = case_when(
     CATEGORIA_OCUPACION == 'TRABAJADORE FLIAR S.R.' ~ TRUE,
     TRUE ~ FALSE
-  ))
+  )) %>% 
+  mutate(EDAD_QUINQUENIO = case_when(
+    EDAD < 0 ~ NA_character_,
+    EDAD < 5 ~ "0-5",
+    EDAD < 10 ~ "5-10",
+    EDAD < 15 ~ "10-15",
+    EDAD < 20 ~ "15-20",
+    EDAD < 25 ~ "20-25",
+    EDAD < 30 ~ "25-30",
+    EDAD < 35 ~ "30-35",
+    EDAD < 40 ~ "35-40",
+    EDAD < 45 ~ "40-45",
+    EDAD < 50 ~ "45-50",
+    EDAD < 55 ~ "50-55",
+    EDAD < 60 ~ "55-60",
+    EDAD < 65 ~ "60-65",
+    EDAD < 70 ~ "65-70",
+    EDAD < 75 ~ "70-75",
+    EDAD < 80 ~ "75-80",
+    EDAD < 85 ~ "80-85",
+    EDAD < 90 ~ "85-90",
+    EDAD >= 90 ~ "90 o mas",
+    TRUE ~ NA_character_
+  )) %>%
+  mutate(EDAD_QUINQUENIO = factor(EDAD_QUINQUENIO, levels= niveles_quinquenio))
 
 save(individual_03.hoy,file='base_ep.RData')
+
+write.csv(individual_03.hoy, "base_ep.csv", row.names = FALSE)
