@@ -40,7 +40,7 @@ genera_aes_cantTrabEP_plot <- function(input){
         
         aes_plot <- aes_(
           x = ~ FECHA,
-          y = ~ (CUENTAPROPISTAS_NO_PROFESIONALES+TFSR)/1e6, 
+          y = ~ (ECON_NUCLEO)/1e6, 
           group = as.formula( paste('~paste( SEXO,', input$variable_zona, ')' )), 
           color = as.formula( paste('~', input$variable_zona )),
           shape = ~ SEXO)
@@ -49,7 +49,7 @@ genera_aes_cantTrabEP_plot <- function(input){
         
         aes_plot <- aes_(
           x = ~ FECHA,
-          y = ~ (CUENTAPROPISTAS_NO_PROFESIONALES+TFSR)/1e6, 
+          y = ~ (ECON_NUCLEO)/1e6, 
           group = ~ SEXO, 
           shape = ~ SEXO)
         
@@ -59,7 +59,7 @@ genera_aes_cantTrabEP_plot <- function(input){
         
         aes_plot <- aes_(
           x = ~ FECHA,
-          y = ~ (CUENTAPROPISTAS_NO_PROFESIONALES+TFSR)/1e6, 
+          y = ~ (ECON_NUCLEO)/1e6, 
           group = as.formula(paste('~',input$variable_zona)), 
           color = as.formula(paste('~',input$variable_zona)))
         
@@ -67,7 +67,7 @@ genera_aes_cantTrabEP_plot <- function(input){
         
         aes_plot <- aes_(
           x = ~ FECHA,
-          y = ~ (CUENTAPROPISTAS_NO_PROFESIONALES+TFSR)/1e6)
+          y = ~ (ECON_NUCLEO)/1e6)
         
       }
     }

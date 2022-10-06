@@ -34,17 +34,17 @@ shinyServer(function(input, output) {
     aes_plot <- genera_aes_cantTrabEP_plot(input)
     grouping_vars <- genera_grouping_vars_cantTrabEP_plot(input)
     
-    individual_03.hoy %>% 
+    individual_03.hoy %>% ungroup() %>%
       filter(YEAR > input$slider_años[1],
              YEAR < input$slider_años[2],
              across(input$variable_zona, ~.x %in% zonas)) %>%
       group_by_at(grouping_vars) %>%
-      genera_resumen() %>% 
+      summarise(ECON_NUCLEO = sum(ECON_NUCLEO)) %>% 
       mutate('FECHA' = as.Date(paste(YEAR,3*TRIMESTER,1,sep='-'))) %>% 
       ungroup() %>% 
       ggplot(aes_plot) +
       geom_pointline(size = 2) +
-      ylab('Cuentapropistas no profesionales y T.F.S.R. [Millones]')
+      ylab('ECONOMIA POPULAR NUCLEO [Millones de personas]')
 
     })
 
