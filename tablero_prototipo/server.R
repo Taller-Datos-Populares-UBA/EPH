@@ -1,66 +1,50 @@
-load('../base_ep.RData')
+# Función server.
+# Objeto output contiene:
+#' @param cantTrabEP_plot Plot de la cantidad de trabajadorxs participando de la economía popular.
 
-#
-# This is the server logic of a Shiny web application. You can run the
-# application by clicking 'Run App' above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
+# Objeto input contiene:
+#' @param separar_sexos Si es verdadero, se separan las líneas de los datos en base al sexo de las personas.
+#' @param regiones Las regiones a considerar cuando graficamos. En caso de que sea NULL, consideramos todas las regiones.
+#' @param separar_zonas Si es verdadero, consideramos una curva distinta para cada una de las regiones consideradas.
 
-library(shiny)
-library(tidyverse)
-library(lemon)
-load('../base_ep.RData')
-source('../ep_funciones.R')
-# Define server logic required to draw a histogram
+
 shinyServer(function(input, output) {
-
-    output$distPlot <- renderPlot({
-
-        # generate bins based on input$bins from ui.R
-      if(input$group_sexo){
-        if (length(input$prueba) != 0) {
-          grouping_vars <- quos('SEXO','YEAR','TRIMESTER', 'REGION')
-          regiones_elegidas <-input$prueba
-          aes_plot <- aes_(x=~FECHA,
-                           y = ~(CUENTAPROPISTAS_NO_PROFESIONALES+TFSR)/POBLACION, 
-                           group = ~paste(SEXO, REGION), color =~REGION, shape = ~SEXO)
-        }
-        else {
-          regiones_elegidas <- unique(individual_03.hoy$REGION)
-          grouping_vars <- quos('SEXO','YEAR','TRIMESTER')
-          aes_plot <- aes_(x=~FECHA,
-                         y = ~(CUENTAPROPISTAS_NO_PROFESIONALES+TFSR)/1e6,
-                         colour = ~SEXO)
-        }
-      }
-      else{
-        if (length(input$prueba) != 0) {
-          grouping_vars <- quos('YEAR','TRIMESTER', 'REGION')
-          regiones_elegidas <-input$prueba
-          aes_plot <- aes_(x=~FECHA,
-                           y = ~(CUENTAPROPISTAS_NO_PROFESIONALES+TFSR)/POBLACION, group = ~REGION, color = ~REGION)
-        }
-        else {
-          regiones_elegidas <- unique(individual_03.hoy$REGION)
-          grouping_vars <- quos('YEAR','TRIMESTER')
-          aes_plot <- aes_(x=~FECHA,
-                         y = ~(CUENTAPROPISTAS_NO_PROFESIONALES+TFSR)/1e6)
-        }
-      }
-      individual_03.hoy %>% 
-        filter(YEAR > input$slider_años[1] & YEAR < input$slider_años[2] & REGION %in% regiones_elegidas) %>%
-        group_by_at(grouping_vars) %>%
-        genera_resumen() %>% 
-        mutate('FECHA' = as.Date(paste(YEAR,3*TRIMESTER,1,sep='-'))) %>% 
-        ungroup() %>% 
-        ggplot(aes_plot) +
-        geom_pointline(size = 2) +
-        ylab('Cuentapropistas no profesionales y T.F.S.R. [Millones]') +
-        theme(legend.position=c(.2,.2)) #+
-        # ylim(0,5) # Por alguna razón tira error esto
+  output$zonas_posibles <- renderUI({
+    opciones <- individual_03.hoy %>% 
+      select_at(input$variable_zona) %>%
+      unique %>% unlist %>% as.character
+    
+    selectInput(
+      inputId = "zonas",
+      label = "Zonas consideradas",
+      choices = opciones,
+      multiple = TRUE,
+      selected = c() )
+  })
+  
+  output$cantTrabEP_plot <- renderPlot({
+    # La lógica es que construimos un vector grouping_vars y otro aes_plot que nos permita indicar qué variables usar para agrupar (a la hora de construir el dataset resumido, grouping vars) y qué graficar (aes_plot)
+  
+    zonas <- unique(input$zonas)
+    if( length(zonas) == 0 ) 
+      zonas <- individual_03.hoy %>% 
+        select_at(input$variable_zona) %>%
+        unique %>% unlist
+    
+    aes_plot <- genera_aes_cantTrabEP_plot(input)
+    grouping_vars <- genera_grouping_vars_cantTrabEP_plot(input)
+    
+    individual_03.hoy %>% 
+      filter(YEAR > input$slider_años[1],
+             YEAR < input$slider_años[2],
+             across(input$variable_zona, ~.x %in% zonas)) %>%
+      group_by_at(grouping_vars) %>%
+      genera_resumen() %>% 
+      mutate('FECHA' = as.Date(paste(YEAR,3*TRIMESTER,1,sep='-'))) %>% 
+      ungroup() %>% 
+      ggplot(aes_plot) +
+      geom_pointline(size = 2) +
+      ylab('Cuentapropistas no profesionales y T.F.S.R. [Millones]')
 
     })
 

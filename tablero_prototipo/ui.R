@@ -1,13 +1,3 @@
-load('../base_ep.RData')
-
-#
-# This is the user-interface definition of a Shiny web application. You can
-# run the application by clicking 'Run App' above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
 
 library(shiny)
 
@@ -15,17 +5,20 @@ library(shiny)
 shinyUI(fluidPage(
 
     # Application title
-    titlePanel("Prototipo de tablero"),
+    titlePanel("Trabajadorxs de la Economía Popular"),
 
     # Sidebar with a slider input for number of bins
     sidebarLayout(
         sidebarPanel(
-            checkboxInput("group_sexo",
-                        "¿Agrupar por sexo?",
+          
+            checkboxInput("separar_sexos",
+                        "¿Separar por sexo?",
                         value=FALSE),
-            checkboxInput("group_region",
-                          "¿Agrupar por region?",
+            
+            checkboxInput("separar_zonas",
+                          "¿Separar por zonas?",
                           value=FALSE),
+            
             sliderInput("slider_años", 
                         label = 'Rango de años',
                         min = 2003, 
@@ -35,18 +28,19 @@ shinyUI(fluidPage(
                         sep = ''),
             
             selectInput(
-              inputId = "prueba",
-              label = "Seleccionar region",
-              choices = unique(individual_03.hoy$REGION),
-              multiple = TRUE,
-              selected = c()
-            )
+              inputId = "variable_zona",
+              label = "Zonas a considerar",
+              choices = c("REGION","AGLOMERADO"),
+              multiple = FALSE,
+              selected = "REGION"),
+            
+            uiOutput("zonas_posibles")
         ),
         
 
-        # Show a plot of the generated distribution
+        # Gráfico de cantidad de personas participando de la economía popular
         mainPanel(
-            plotOutput("distPlot")
+            plotOutput("cantTrabEP_plot")
         )
     )
 ))
