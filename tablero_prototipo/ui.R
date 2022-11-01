@@ -34,7 +34,17 @@ shinyUI(fluidPage(
               multiple = FALSE,
               selected = "REGION"),
             
-            uiOutput("zonas_posibles")
+            uiOutput("zonas_posibles"),
+
+            selectInput(
+              inputId = "variable_edad",
+              label = "Partición de la edad",
+              choices = c("QUINQUENIO","DECENIO"),
+              multiple = FALSE,
+              selected = "QUINQUENIO"),
+            
+            uiOutput("edades_posibles")
+            
         ),
         
 

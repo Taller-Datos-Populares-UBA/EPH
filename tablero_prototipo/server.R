@@ -12,7 +12,7 @@ shinyServer(function(input, output) {
   output$zonas_posibles <- renderUI({
     opciones <- individual_03.hoy %>% 
       select_at(input$variable_zona) %>%
-      unique %>% unlist %>% as.character
+      unique %>% unlist %>% as.character %>% setdiff('N/A')
     
     selectInput(
       inputId = "zonas",
@@ -22,6 +22,21 @@ shinyServer(function(input, output) {
       selected = c() )
   })
   
+  
+  output$edades_posibles <- renderUI({
+    opciones <- individual_03.hoy %>% 
+      select_at(paste('EDAD',input$variable_edad,sep='_')) %>%
+      unique %>% unlist %>% as.character %>% discard(is.na)
+    
+    selectInput(
+      inputId = "edades",
+      label = "Edades consideradas",
+      choices = opciones,
+      multiple = TRUE,
+      selected = c() )
+  })
+  
+  
   output$cantTrabEP_plot <- renderPlot({
     # La lógica es que construimos un vector grouping_vars y otro aes_plot que nos permita indicar qué variables usar para agrupar (a la hora de construir el dataset resumido, grouping vars) y qué graficar (aes_plot)
   
@@ -29,22 +44,33 @@ shinyServer(function(input, output) {
     if( length(zonas) == 0 ) 
       zonas <- individual_03.hoy %>% 
         select_at(input$variable_zona) %>%
-        unique %>% unlist
+        unique %>% unlist 
+    
+    edades <- unique(input$edades)
+    if( length(edades) == 0 ) 
+      edades <- individual_03.hoy %>% 
+        select_at(paste('EDAD',input$variable_edad,sep='_')) %>%
+        unique %>% unlist 
     
     aes_plot <- genera_aes_cantTrabEP_plot(input)
     grouping_vars <- genera_grouping_vars_cantTrabEP_plot(input)
     
     individual_03.hoy %>% ungroup() %>%
-      filter(YEAR > input$slider_años[1],
-             YEAR < input$slider_años[2],
-             across(input$variable_zona, ~.x %in% zonas)) %>%
+      filter(
+        YEAR > input$slider_años[1],
+        YEAR < input$slider_años[2],
+        across(input$variable_zona, ~.x %in% zonas),
+        across(paste('EDAD',input$variable_edad,sep='_'), ~.x %in% edades)
+      ) %>%
       group_by_at(grouping_vars) %>%
       summarise(ECON_NUCLEO = sum(ECON_NUCLEO)) %>% 
       mutate('FECHA' = as.Date(paste(YEAR,3*TRIMESTER,1,sep='-'))) %>% 
       ungroup() %>% 
       ggplot(aes_plot) +
       geom_pointline(size = 2) +
-      ylab('ECONOMIA POPULAR NUCLEO [Millones de personas]')
+      ylab('EP NUCLEO [Millones de personas]') +
+      theme(axis.title = element_text(size=15),
+            axis.text = element_text(size=12),)
 
     })
 

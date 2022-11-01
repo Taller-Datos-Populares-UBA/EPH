@@ -5,6 +5,7 @@ library(eph)
 library(tidyverse)
 source('ep_funciones.R')
 library(ggridges)
+
 # Variables descargadas
 ## Las levantamos desde un archivo
 variables_ep <- read_csv('variables_ep.csv')
@@ -21,7 +22,7 @@ individual_03.15 <- get_microdata(
   year = years_download[years_download<=2015],
   trimester = trimesters_download,
   type = 'individual',
-  vars = variables_ep$VAR_EPH %>% setdiff(c('PONDII','PONDIIO'))
+  vars = variables_ep$VAR_EPH %>% setdiff(c('PONDII','PONDIIO','PONDIH'))
   )
 
 # Descargamos segundo periodo
@@ -33,8 +34,13 @@ individual_16.hoy <- get_microdata(
 )
 
 # Combinamos los datos de ambos periodos en un solo dataset
-#individual_03.15 <- (individual_03.15$microdata) %>% bind_rows() #comentado porque hubo cambios en la api de la eph
-#individual_16.hoy <- (individual_16.hoy$microdata) %>% bind_rows()
+if(is.element('microdata',colnames(individual_03.15))){
+  individual_03.15 <- (individual_03.15$microdata) %>% bind_rows() 
+}
+if(is.element('microdata',colnames(individual_16.hoy))){
+  individual_16.hoy <- (individual_16.hoy$microdata) %>% bind_rows()
+}
+# Pegamos los datasets
 individual_03.hoy <- bind_rows(individual_03.15,individual_16.hoy)
 
 rm(individual_03.15,individual_16.hoy)
@@ -51,7 +57,10 @@ individual_03.hoy <-
 ## TODO: pasar esto a un formato independiente
 
 # Orden / Niveles para variable EDAD_QUINQUENIO
-niveles_quinquenio <- c(sapply(1:18, function(i) paste((i-1)*5,i*5, sep="-") ),"90 o mas")
+niveles_quinquenio <- c(sapply(1:18, function(i) paste((i-1)*5,i*5, sep="-") ),"90+")
+niveles_decenio <- c(sapply(1:9, function(i) paste((i-1)*10,i*10, sep="-") ),"90+")
+
+
 # Gran operacion que convierte cada variable a lenguaje humano
 individual_03.hoy <- 
   individual_03.hoy %>%
@@ -174,11 +183,30 @@ individual_03.hoy <-
     EDAD < 80 ~ "75-80",
     EDAD < 85 ~ "80-85",
     EDAD < 90 ~ "85-90",
-    EDAD >= 90 ~ "90 o mas",
+    EDAD >= 90 ~ "90+",
     TRUE ~ NA_character_
   )) %>%
-  mutate(EDAD_QUINQUENIO = factor(EDAD_QUINQUENIO, levels= niveles_quinquenio))
+  mutate(EDAD_QUINQUENIO = factor(EDAD_QUINQUENIO, levels= niveles_quinquenio)) %>%
+  mutate(EDAD_DECENIO = case_when(
+    EDAD < 0 ~ NA_character_,
+    EDAD < 10 ~ "0-10",
+    EDAD < 20 ~ "10-20",
+    EDAD < 30 ~ "20-30",
+    EDAD < 40 ~ "30-40",
+    EDAD < 50 ~ "40-50",
+    EDAD < 60 ~ "50-60",
+    EDAD < 70 ~ "60-70",
+    EDAD < 80 ~ "70-80",
+    EDAD < 90 ~ "80-90",
+    EDAD >= 90 ~ "90+",
+    TRUE ~ NA_character_
+  )) %>%
+  mutate(EDAD_DECENIO = factor(EDAD_DECENIO, levels= niveles_decenio))
 
 save(individual_03.hoy,file='base_ep.RData')
 
 write.csv(individual_03.hoy, "base_ep.csv", row.names = FALSE)
+
+rm(list=ls())
+closeAllConnections()
+gc()

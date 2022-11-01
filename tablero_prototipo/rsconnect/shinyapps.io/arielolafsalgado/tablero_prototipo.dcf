@@ -5,9 +5,9 @@ account: arielolafsalgado
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 7235869
-bundleId: 6377402
+bundleId: 6426813
 url: https://arielolafsalgado.shinyapps.io/tablero_prototipo/
-when: 1665092788.97854
-lastSyncTime: 1665092788.9786
+when: 1666356536.92599
+lastSyncTime: 1666356536.92602
 asMultiple: FALSE
 asStatic: FALSE
