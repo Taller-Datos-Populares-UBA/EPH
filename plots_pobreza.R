@@ -4,10 +4,9 @@ library(eph)
 source('ep_funciones.R')
 load('base_ep.RData')
 canastas <- read.csv('canastas_confiable.csv') %>% mutate(region = toupper(region))
-individual_03.hoy <- calcula_pobreza_hogar(
+individual_03.hoy <- calcula_pobreza_individual(
   base = individual_03.hoy,
-  basket = canastas,
-  print_summary = FALSE
+  basket = canastas
 )
 
 # individual_03.hoy %>% 
@@ -85,28 +84,29 @@ individual_03.hoy <- calcula_pobreza_hogar(
 # Plot tomado de Informe OCEPP
 
 individual_03.hoy %>%
-  mutate(ES_CP = ES_CUENTAPROPISTA_NO_PROFESIONAL | ES_TFSR) %>%
+  filter(YEAR > 2015) %>%
+  mutate(ES_EP = ES_CUENTAPROPISTA_NO_PROFESIONAL | ES_TFSR) %>%
   mutate(ES_OCUP = ESTADO == 'OCUPADE') %>%
-  mutate(ES_OCUP_NOEP = ES_OCUP & !ES_CP) %>%
-  group_by(ES_CP,ES_OCUP_NOEP,YEAR,TRIMESTER) %>%
+  mutate(ES_OCUP_NO_EP = ES_OCUP & !ES_EP) %>%
+  group_by(YEAR,TRIMESTER) %>%
+  filter(ES_EP | ES_OCUP_NO_EP) %>%
   summarise(
-    tasa_pobreza = sum(PONDIH[situacion %in% c('pobre','indigente')],na.rm=TRUE)/sum(PONDIH,na.rm=TRUE),
-    tasa_indigencia = sum(PONDIH[situacion %in% c('indigente')],na.rm=TRUE)/sum(PONDIH,na.rm=TRUE)
+    tasa_pobreza_EP = sum(PONDERA[situacion %in% c('pobre','indigente') & ES_EP],na.rm=TRUE)/sum(PONDERA[ ES_EP ],na.rm=TRUE),
+    tasa_indigencia_EP = sum(PONDERA[situacion %in% c('indigente') & ES_EP],na.rm=TRUE)/sum(PONDERA[ ES_EP ],na.rm=TRUE),
+    tasa_pobreza_OCU_NEP = sum(PONDERA[situacion %in% c('pobre','indigente') & ES_OCUP_NO_EP],na.rm=TRUE)/sum(PONDERA[ ES_OCUP_NO_EP ],na.rm=TRUE),
+    tasa_indigencia_OCU_NEP = sum(PONDERA[situacion %in% c('indigente') & ES_OCUP_NO_EP],na.rm=TRUE)/sum(PONDERA[ ES_OCUP_NO_EP ],na.rm=TRUE),
+    tasa_pobreza = sum(PONDERA[situacion %in% c('pobre','indigente')],na.rm=TRUE)/sum(PONDERA,na.rm=TRUE),
+    tasa_indigencia = sum(PONDERA[situacion %in% c('indigente')],na.rm=TRUE)/sum(PONDERA,na.rm=TRUE)
   ) %>%
   mutate(FECHA = as.Date(paste(YEAR,4*TRIMESTER,'1',sep='-'))) %>%
-  mutate(CATE = case_when(
-    ES_CP ~ 'EP',
-    ES_OCUP_NOEP ~ 'Ocupados no EP',
-    TRUE ~ 'RESTO'
-  )) %>%
-  pivot_longer(cols=c(tasa_pobreza,tasa_indigencia),names_to = 'tasa_tipo',values_to = 'tasa') %>%
+  pivot_longer(cols = c(tasa_pobreza_EP,tasa_indigencia_EP,tasa_pobreza_OCU_NEP,tasa_indigencia_OCU_NEP,tasa_pobreza,tasa_indigencia),names_to = 'tasa_tipo',values_to = 'tasa') %>%
   drop_na() %>% 
-  ggplot(aes( x = FECHA, color = CATE, y = tasa)) +
+  filter(str_starts(tasa_tipo,'tasa_indi')) %>%
+  ggplot(aes( x = FECHA, color = tasa_tipo, y = tasa)) +
   geom_pointline() +
-  facet_wrap( ~ tasa_tipo) +
   theme_light() +
   theme(legend.position = c(.3,.8)) +
-  scale_color_discrete(name = 'Población') -> gg
+  scale_color_discrete(name = 'Población') #-> gg
 
 pdf('tasas_PONDIH.pdf')
 print(gg)
