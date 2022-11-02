@@ -61,3 +61,38 @@ calcula_pobreza_hogar <- function (base, basket, print_summary = TRUE)
   }
   return(base)
 }
+
+calcula_pobreza_individual <- function (base, basket){
+  #'@param base La base a ser empleada (resultado de una descarga de EPH y posterior procesamiento interno de EP).
+  #'@param basket Canastas en el mismo formato que las provistas por EPH.
+  #'@return La misma base, pero con columna situación indicando la situación del a persona, y columnas adequi (indicando el consumo energético), CBA_indi y CBT_indi (indicando la canastas básica de la persona).
+  library(eph)
+  adulto_equi <- adulto_equivalente %>% rename(SEXO = CH04,EDAD = CH06) %>%
+    mutate(SEXO = case_when(SEXO == 1 ~ 'VARON', SEXO == 2 ~ 'MUJER'))
+  base <- base %>%
+    mutate(periodo = paste(YEAR, TRIMESTER, sep = ".")) %>%
+    left_join(., adulto_equi,
+              by = c("SEXO", "EDAD")) %>%
+    left_join(., basket %>% mutate(periodo = as.character(periodo)),
+              by = c(REGION = "region", "periodo")) %>%
+    mutate(
+      CBA_indi = CBA * adequi,
+      CBT_indi = CBT * adequi,
+      situacion = case_when(
+        is.na(TOTAL_INGRESO_INDIVIDUAL) | ( TOTAL_INGRESO_INDIVIDUAL < 0 ) ~ NA_character_,
+        TOTAL_INGRESO_INDIVIDUAL < CBA_indi ~ "indigente",
+        TOTAL_INGRESO_INDIVIDUAL < CBT_indi ~  "pobre",
+        TRUE ~ "no_pobre"),
+      situacion = case_when(
+        PONDIH == 0 ~ NA_character_,
+        TRUE ~ situacion),
+      situacion_check = case_when(
+        TOTAL_INGRESO_INDIVIDUAL < CBA_indi ~ "indigente",
+        TOTAL_INGRESO_INDIVIDUAL >=CBA_indi &
+          TOTAL_INGRESO_INDIVIDUAL < CBT_indi ~ 'pobre',
+        TOTAL_INGRESO_INDIVIDUAL >= CBT_indi ~ 'no_pobre'
+      )
+    ) %>%
+    select(-c(CBA,CBT,periodo))
+  return(base)
+}
