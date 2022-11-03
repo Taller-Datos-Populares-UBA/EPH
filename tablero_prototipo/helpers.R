@@ -76,26 +76,18 @@ genera_aes_cantTrabEP_plot <- function(input){
 
 genera_grouping_vars_cantTrabEP_plot <- function(input){
   #'@description Esta función genera el agrupamiento necesario para el plot cantTrabEP_plot
-  if(input$separar_sexos){ # Si separamos por sexo
-    if(input$separar_zonas){
-    
-      grouping_vars <- quos('SEXO','YEAR','TRIMESTER', input$variable_zona)
-      
-    }else{
-      
-      grouping_vars <- quos('SEXO','YEAR','TRIMESTER')
-      
-    }
-  }else {
-    if(input$separar_zonas){
-      
-      grouping_vars <- quos('YEAR','TRIMESTER', input$variable_zona)
-      
-    }else{
-      
-      grouping_vars <- quos('YEAR','TRIMESTER')
-      
-    }
+  
+  agrupar <- c("YEAR", "TRIMESTER")
+  if(input$separar_sexos){
+    agrupar <- c(agrupar, "SEXO")
   }
+  if(input$separar_zonas){
+    agrupar<- c(agrupar, input$variable_zona)
+  }
+  #if(input$agregar_ocupados){
+  #  agrupar <- c(agrupar, "EP", "RESTO_CUENTAPROPISTAS", "ASALARIADOS_REGISTRADOS", "ASALARIADOS_NOREGISTRADOS", "PATRONES")
+  #}
+  grouping_vars <- quos(agrupar) 
+  
   return(grouping_vars)
 }
