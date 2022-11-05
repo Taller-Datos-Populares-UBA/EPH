@@ -69,6 +69,7 @@ shinyServer(function(input, output) {
       ggplot(aes_plot) +
       geom_pointline(size = 2) +
       ylab('Economía Popular  [Millones de personas]') +
+      theme_light() +
       theme(axis.title = element_text(size=15),
             axis.text = element_text(size=12))
 
@@ -152,8 +153,12 @@ shinyServer(function(input, output) {
       ) %>%
       ggplot(aes_plot) +
       geom_pointline() +
+      scale_color_discrete(name = 'Población')+
+      ylab('TASAS') +
       theme_light() +
-      theme(legend.position = c(.3,.8)) +
-      scale_color_discrete(name = 'Población')
+      theme(axis.title = element_text(size=15),
+            axis.text = element_text(size=12)) +
+      theme(legend.position = c(.3,.8))
+      
   })
 })
