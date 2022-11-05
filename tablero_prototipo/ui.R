@@ -60,20 +60,22 @@ shinyUI(navbarPage("La Economía Popular",
            # Sidebar with a slider input for number of bins
            sidebarLayout(
              sidebarPanel(
+               selectInput(
+                 inputId = "tasa_tipo",
+                 label = "TASA",
+                 choices = c("POBREZA","INDIGENCIA"),
+                 multiple = FALSE,
+                 selected = "POBREZA"),
                
                checkboxInput("separar_sexos_t2",
                              "¿Separar por sexo?",
                              value=FALSE),
                
-               checkboxInput("separar_zonas_t2",
-                             "¿Separar por zonas?",
-                             value=FALSE),
-               
                sliderInput("slider_años_t2", 
                            label = 'Rango de años',
-                           min = 2003, 
+                           min = 2016, 
                            max = 2022, 
-                           value = c(2003, 2022),
+                           value = c(2016, 2022),
                            step = 1,
                            sep = ''),
                
@@ -84,7 +86,7 @@ shinyUI(navbarPage("La Economía Popular",
                  multiple = FALSE,
                  selected = "REGION"),
                
-#               uiOutput("zonas_posibles_t2"),
+               uiOutput("zonas_posibles_t2"),
                
                selectInput(
                  inputId = "variable_edad_t2",
@@ -93,14 +95,14 @@ shinyUI(navbarPage("La Economía Popular",
                  multiple = FALSE,
                  selected = "QUINQUENIO"),
                
- #              uiOutput("edades_posibles")
+               uiOutput("edades_posibles_t2")
                
              ),
              
              
              # Gráfico de cantidad de personas participando de la economía popular
              mainPanel(
-  #             plotOutput("cantTrabEP_plot")
+               plotOutput("pobrezaEP_plot")
              )
            )
   )

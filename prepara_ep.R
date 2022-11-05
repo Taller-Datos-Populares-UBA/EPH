@@ -203,9 +203,15 @@ individual_03.hoy <-
   )) %>%
   mutate(EDAD_DECENIO = factor(EDAD_DECENIO, levels= niveles_decenio))
 
+#### CALCULO DE POBREZA
+
+canastas <- read.csv('canastas_confiable.csv')
+
+individual_03.hoy <- calcula_pobreza_individual(individual_03.hoy,basket = canastas)
+
 save(individual_03.hoy,file='base_ep.RData')
 
-write.csv(individual_03.hoy, "base_ep.csv", row.names = FALSE)
+#write.csv(individual_03.hoy, "base_ep.csv", row.names = FALSE)
 
 rm(list=ls())
 closeAllConnections()

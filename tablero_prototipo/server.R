@@ -63,15 +63,97 @@ shinyServer(function(input, output) {
         across(paste('EDAD',input$variable_edad,sep='_'), ~.x %in% edades)
       ) %>%
       group_by_at(grouping_vars) %>%
-      summarise(ECON_NUCLEO = sum(ECON_NUCLEO)) %>% 
+      summarise(ECONOMIA_POPULAR = sum(ECONOMIA_POPULAR)) %>% 
       mutate('FECHA' = as.Date(paste(YEAR,3*TRIMESTER,1,sep='-'))) %>% 
       ungroup() %>% 
       ggplot(aes_plot) +
       geom_pointline(size = 2) +
-      ylab('EP NUCLEO [Millones de personas]') +
+      ylab('Economía Popular  [Millones de personas]') +
       theme(axis.title = element_text(size=15),
-            axis.text = element_text(size=12),)
+            axis.text = element_text(size=12))
 
     })
-
+  
+  ##### SEGUNDO PANEL
+  
+  output$zonas_posibles_t2 <- renderUI({
+    opciones <- individual_03.hoy %>% 
+      select_at(input$variable_zona_t2) %>%
+      unique %>% unlist %>% as.character %>% setdiff('N/A')
+    
+    selectInput(
+      inputId = "zonas_t2",
+      label = "Zonas consideradas",
+      choices = opciones,
+      multiple = TRUE,
+      selected = c() )
+  })
+  
+  
+  output$edades_posibles_t2 <- renderUI({
+    opciones <- individual_03.hoy %>% 
+      select_at(paste('EDAD',input$variable_edad_t2,sep='_')) %>%
+      unique %>% unlist %>% as.character %>% discard(is.na)
+    
+    selectInput(
+      inputId = "edades_t2",
+      label = "Edades consideradas",
+      choices = opciones,
+      multiple = TRUE,
+      selected = c() )
+  })
+  
+  output$pobrezaEP_plot <- renderPlot({
+    # La lógica es que construimos un vector grouping_vars y otro aes_plot que nos permita indicar qué variables usar para agrupar (a la hora de construir el dataset resumido, grouping vars) y qué graficar (aes_plot)
+    
+    zonas <- unique(input$zonas_t2)
+    if( length(zonas) == 0 ) 
+      zonas <- individual_03.hoy %>% 
+        select_at(input$variable_zona_t2) %>%
+        unique %>% unlist 
+    
+    edades <- unique(input$edades_t2)
+    if( length(edades) == 0 ) 
+      edades <- individual_03.hoy %>% 
+      select_at(paste('EDAD',input$variable_edad_t2,sep='_')) %>%
+      unique %>% unlist 
+    
+    aes_plot <- genera_aes_pobrezaEP_plot(input)
+    grouping_vars <- genera_grouping_vars_pobrezaEP_plot(input)
+    
+    individual_03.hoy %>%
+      filter(
+        YEAR > input$slider_años_t2[1],
+        YEAR < input$slider_años_t2[2],
+        across(input$variable_zona_t2, ~.x %in% zonas),
+        across(paste('EDAD',input$variable_edad_t2,sep='_'), ~.x %in% edades)
+      ) %>%
+      group_by_at(grouping_vars) %>%
+      summarise(
+        tasa_pobreza_EP = sum(ECONOMIA_POPULAR[situacion %in% c('pobre','indigente')],na.rm=TRUE)/sum(ECONOMIA_POPULAR,na.rm=TRUE),
+        tasa_indigencia_EP = sum(ECONOMIA_POPULAR[situacion %in% c('indigente')],na.rm=TRUE)/sum(ECONOMIA_POPULAR,na.rm=TRUE),
+        tasa_pobreza_OCU_NEP = sum(OCUPADES_NO_EP[situacion %in% c('pobre','indigente')],na.rm=TRUE)/sum(OCUPADES_NO_EP,na.rm=TRUE),
+        tasa_indigencia_OCU_NEP = sum(OCUPADES_NO_EP[situacion %in% c('indigente')],na.rm=TRUE)/sum(OCUPADES_NO_EP,na.rm=TRUE),
+        tasa_pobreza = sum((ECONOMIA_POPULAR + OCUPADES_NO_EP)[situacion %in% c('pobre','indigente')],na.rm=TRUE)/sum((ECONOMIA_POPULAR + OCUPADES_NO_EP),na.rm=TRUE),
+        tasa_indigencia = sum((ECONOMIA_POPULAR + OCUPADES_NO_EP)[situacion %in% c('indigente')],na.rm=TRUE)/sum((ECONOMIA_POPULAR + OCUPADES_NO_EP),na.rm=TRUE)
+      ) %>%
+      mutate(FECHA = as.Date(paste(YEAR,4*TRIMESTER,'1',sep='-'))) %>%
+      pivot_longer(cols = c(tasa_pobreza_EP,tasa_indigencia_EP,tasa_pobreza_OCU_NEP,tasa_indigencia_OCU_NEP,tasa_pobreza,tasa_indigencia),names_to = 'tasa_tipo',values_to = 'tasa') %>%
+      drop_na() %>% 
+      filter(grepl(
+        tolower(input$tasa_tipo),
+        tasa_tipo)
+      ) %>%
+      mutate(
+        tasa_tipo = case_when(
+          str_detect(tasa_tipo,'OCU') ~ 'OCUPADES NO EP',
+          str_detect(tasa_tipo,'EP') ~ 'EP',
+          TRUE ~ 'POB. TOT.')
+      ) %>%
+      ggplot(aes_plot) +
+      geom_pointline() +
+      theme_light() +
+      theme(legend.position = c(.3,.8)) +
+      scale_color_discrete(name = 'Población')
+  })
 })

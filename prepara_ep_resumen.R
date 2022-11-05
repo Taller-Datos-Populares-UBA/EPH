@@ -14,10 +14,10 @@ individual_03.hoy <- individual_03.hoy %>%
     EDAD_DECENIO,
     SEXO,
     REGION,
-    AGLOMERADO
+    AGLOMERADO,
+    situacion
   ) %>% 
   genera_resumen() %>%
-  mutate(ECON_NUCLEO = CUENTAPROPISTAS_NO_PROFESIONALES + TFSR) %>%
   ungroup() 
 save(individual_03.hoy,file = 'tablero_prototipo/data/base_ep_resumen.RData')
  
