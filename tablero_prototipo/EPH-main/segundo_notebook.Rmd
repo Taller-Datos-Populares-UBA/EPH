@@ -1,0 +1,566 @@
+---
+title: "Primera pasada a variables de la Economía Popular"
+author: "Taller de datos populares"
+date: "5/13/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Este notebook
+
+Este notebook incluye una primer pasada a algunas variables de la Encuesta Permanente de Hogares (*EPH*), elegidas por su utilidad para medir la cantidad de personas participando de la Economía Popular (_EP_). A este nivel, decimos que una persona participa de la _EP_ si _A COMPLETAR AÚN_.
+
+Tomamos como referencia [este documento](https://docs.google.com/spreadsheets/d/1bNq4DF6C55rIMIrGOv5Z2_x0temKAeif/edit?usp=sharing&ouid=103738709450564223645&rtpof=true&sd=true), donde se indican una serie de variables a ser consideradas. En este notebook se realiza un analisis exploratorio de datos de ellas.
+
+# Carga de datos
+
+Para obtener los datos necesarios para el análisis, usamos el paquete de R que permite descargar datos de la EPH. Empezamos cargando el paquete, junto al paquete `tidyverse`, útil para realizar análisis de datos:
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse,warn.conflicts = FALSE,quietly = TRUE)
+library(eph,warn.conflicts = FALSE,quietly = TRUE)
+```
+
+La función base que nos permite descargar información de la encuesta es `get_microdata`. En caso de querer explorar mejor las características del paquete, se sugiere revisar [este vignette](https://cran.r-project.org/web/packages/eph/vignettes/eph.html). Tomemos los datos del 3er trimestre de 2010:
+
+```{r message=FALSE, warning=FALSE}
+individual_10.3 <-get_microdata(year = 2010, trimester = 3,type='individual') # Vamos a llamar a los datasets siguiendo la notación type_year.trimester, como se ve acá.
+individual_10.3
+rm(individual_10.3)
+```
+
+
+El paquete tiene algunos problemas a la hora de traer sólo parte de las variables (es decir, usando el argumento `vars` de `get_microdata`). A futuro, usaremos la base de datos localmente. De momento, nos conformaremos con descargar iterativamente toda la base y luego filtrar las columnas que nos interesen.
+
+Siguiendo el archivo de las variables de interés, vemos que nos interesan 
+
+- `ANO4`: El año
+- `TRIMESTRE`: El trimestre
+- `REGION`: La región en la que vive la persona. *01* = Gran Buenos Aires; *40* = NOA; *41* = NEA; *42* = Cuyo; *43* = Pampeana; *44* = Patagonia.
+- `AGLOMERADO`: El aglomerado en el que vive la persona. Revisar base original para buscar correspondencia con el número (hay 29 categorías)
+- `CODUSU`: Código para distinguir viviendas, permite aparearlas con Hogares y Personas. Además permite hacer el seguimiento a través de los trimestres.
+- `NRO_HOGAR`: Indicador del hogar de la persona, útil para aglomerarlas.
+- `CH03`: Rol en el hogar.
+- `CH04`: Sexo de la persona.
+- `CH05`: Fecha de nacimiento de la persona.
+- `CH06`: Edad declarada de la persona.
+- `ESTADO`: Estado de ocupación de la persona considerada. *1*: Ocupado; *2*: Desocupado; *3*: Inactivo. 
+- `CAT_INAC`: Categoría de inactividad de la persona (asociada a ESTADO=3) *1*: jubilado o pensionado; *2*: rentista; *3*: estudiante; *4*: ama de casa; *5*: menor de 6 años; *6*: discapacitado; *7*: otros.
+- `CAT_OCUP`: La categoría de ocupación de la persona.
+- `PP04D_COD`: _A completar_
+
+Para una descripción de las variables, mirar [este documento](https://www.indec.gob.ar/ftp/cuadros/menusuperior/eph/EPH_registro_4T2021.pdf) provisto por INDEC.
+
+Construimos un vector con los nombres de las variables de interés, y descargamos iterativamente los datos de cada año, reteniendo únicamente la información asociada a estas variables:
+
+```{r}
+variables_de_interes <-
+  c('ANO4','TRIMESTRE','REGION','AGLOMERADO',
+    'CODUSU','NRO_HOGAR',
+    'CH03','CH04','CH05','CH06',
+    'ESTADO','CAT_OCUP','CAT_INAC',
+    'PP04D_COD','PONDERA')
+```
+
+```{r message=FALSE, warning=FALSE}
+individual_03to15 <- get_microdata(year=2003:2015,trimester=1:4,vars = variables_de_interes)
+individual_16to22 <- get_microdata(year=2016:2022,trimester=1:4,vars = variables_de_interes)
+```
+
+```{r message=FALSE, warning=FALSE}
+individual_03to15 <- (individual_03to15$microdata) %>% bind_rows()
+individual_16to22 <- (individual_16to22$microdata) %>% bind_rows()
+individual_03to22 <- bind_rows(individual_03to15,individual_16to22)
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+rm(list=setdiff(ls(),'individual_03to22'))
+#closeAllConnections()
+gc()
+```
+
+Veamos el dataset obtenido:
+
+```{r}
+individual_03to22 %>% glimpse()
+```
+
+## Renombramos variables
+
+Dado que las variables tienen unos nombres bastante complejos de seguir, vamos a renombrarlas para volverlas más _humanas_
+
+```{r}
+individual_03to22 <- 
+  individual_03to22 %>%
+  rename(ROL_HOGAR = CH03,
+         GENERO = CH04,
+         FECHA_NAC = CH05,
+         EDAD = CH06,
+         COD_OCUP = PP04D_COD
+  )
+```
+
+Y también las recodificamos por idéntico motivo
+
+```{r}
+individual_03to22 <- 
+  individual_03to22 %>%
+  mutate(REGION = case_when(
+    REGION == 1 ~ 'GBA',
+    REGION == 40 ~ 'NOA',
+    REGION == 41 ~ 'NEA',
+    REGION == 42 ~ 'CUYO',
+    REGION == 43 ~ 'PAMPEANA',
+    REGION == 44 ~ 'PATAGONIA',
+    TRUE ~ 'N/A'
+  )) %>% 
+  mutate(AGLOMERADO = case_when(
+    AGLOMERADO == 2 ~ 'GRAN LA PLATA',
+    AGLOMERADO == 3 ~ 'BAHIA BLANCA - CERRI',
+    AGLOMERADO == 4 ~ 'GRAN ROSARIO',
+    AGLOMERADO == 5 ~ 'GRAN SANTA FE',
+    AGLOMERADO == 6 ~ 'GRAN PARANA',
+    AGLOMERADO == 7 ~ 'POSADAS',
+    AGLOMERADO == 8 ~ 'GRAN RESISTENCIA',
+    AGLOMERADO == 9 ~ 'C. RIVADAVIA - R. TILLY',
+    AGLOMERADO == 10 ~ 'GRAN MENDOZA',
+    AGLOMERADO == 12 ~ 'CORRIENTES',
+    AGLOMERADO == 13 ~ 'GRAN CORDOBA',
+    AGLOMERADO == 14 ~ 'CONCORDIA',
+    AGLOMERADO == 15 ~ 'FORMOSA',
+    AGLOMERADO == 17 ~ 'NEUQUEN - PLOTTIER',
+    AGLOMERADO == 18 ~ 'S. DEL ESTERO - LA BANDA',
+    AGLOMERADO == 19 ~ 'JUJUY - PALPALA',
+    AGLOMERADO == 20 ~ 'RIO GALLEGOS',
+    AGLOMERADO == 22 ~ 'GRAN CATAMARCA',
+    AGLOMERADO == 23 ~ 'GRAN SALTA',
+    AGLOMERADO == 25 ~ 'LA RIOJA',
+    AGLOMERADO == 26 ~ 'GRAN SAN LUIS',
+    AGLOMERADO == 27 ~ 'GRAN SAN JUAN',
+    AGLOMERADO == 29 ~ 'GRAN TUCUMAN - TAFI V.',
+    AGLOMERADO == 30 ~ 'SANTA ROSA - TOAY',
+    AGLOMERADO == 31 ~ 'USUAHIA - RIO GRANDE',
+    AGLOMERADO == 32 ~ 'CABA',
+    AGLOMERADO == 33 ~ 'PARTIDOS GBA',
+    AGLOMERADO == 34 ~ 'MAR DEL PLATA',
+    AGLOMERADO == 36 ~ 'RIO CUARTO',
+    AGLOMERADO == 38 ~ 'SAN NICOLAS - V. CONSTITUCION',
+    AGLOMERADO == 91 ~ 'RAWSON - TRELEW',
+    AGLOMERADO == 93 ~ 'VIEDMA - C. DE PATAGONES',
+    TRUE ~ 'N/A'
+  )) %>% 
+  mutate(ROL_HOGAR = case_when(
+    ROL_HOGAR == 1 ~ 'JEFE',
+    ROL_HOGAR == 2 ~ 'CONYUGE',
+    ROL_HOGAR == 3 ~ 'HIJE',
+    ROL_HOGAR == 4 ~ 'YERNO/NUERA',
+    ROL_HOGAR == 5 ~ 'NIETE',
+    ROL_HOGAR == 6 ~ 'MADRE/PADRE',
+    ROL_HOGAR == 7 ~ 'SUEGRE',
+    ROL_HOGAR == 8 ~ 'HERMANE',
+    ROL_HOGAR == 9 ~ 'OTRO FLIAR',
+    ROL_HOGAR == 10 ~ 'NO FLIAR',
+    TRUE ~ 'N/A'
+  )) %>% 
+  mutate(GENERO = case_when(
+    GENERO == 1 ~ 'VARON',
+    GENERO == 2 ~ 'MUJER',
+    TRUE ~ 'N/A'
+  )) %>% 
+  mutate(FECHA_NAC = as.Date(FECHA_NAC)) %>%
+  mutate(ESTADO = case_when(
+    ESTADO == 1 ~ 'OCUPADO',
+    ESTADO == 2 ~ 'DESOCUPADO',
+    ESTADO == 3 ~ 'INACTIVO',
+    ESTADO == 4 ~ 'MENOR 10',
+    TRUE ~ 'N/A'
+  )) %>% 
+  mutate(CAT_INAC = case_when(
+    CAT_INAC == 1 ~ 'JUBILADO/PENSIONADO',
+    CAT_INAC == 2 ~ 'RENTISTA',
+    CAT_INAC == 3 ~ 'ESTUDIANTE',
+    CAT_INAC == 4 ~ 'AMA DE CASA',
+    CAT_INAC == 5 ~ 'MENOR 6',
+    CAT_INAC == 6 ~ 'DISCAPACITADO',
+    CAT_INAC == 7 ~ 'OTROS',
+    TRUE ~ 'N/A'
+  )) %>%
+  mutate(CAT_OCUP = case_when(
+    CAT_OCUP == 1 ~ 'PATRON',
+    CAT_OCUP == 2 ~ 'CUENTAPROPISTA',
+    CAT_OCUP == 3 ~ 'ASALARIADE',
+    CAT_OCUP == 4 ~ 'TRABAJADOR FLIAR S.R.',
+    TRUE ~ 'N/A'
+  )) %>%
+  mutate(ES_PROF = case_when(
+    str_ends(COD_OCUP, "[2-4]") ~ FALSE,
+    str_ends(COD_OCUP, "[1]") ~ TRUE,
+    TRUE ~ NA)
+  ) 
+
+
+```
+
+## Nuevas variables
+
+Construimos la variable `EDAD_FECHA` a partir de la fecha de nacimiento y el año en el que se hizo la encuesta
+
+```{r}
+individual_03to22 <- 
+  individual_03to22 %>%
+  mutate(FECHA_EPH =
+           as.Date(
+             paste(ANO4,3*TRIMESTRE,1),
+             format='%Y %m %d')) %>% # Construimos la fecha en la que se hizo la encuesta
+  mutate(EDAD_FECHA = round(as.numeric(FECHA_EPH - FECHA_NAC)/365)) # Armamos la edad como la resta entre ambas dividido 365 días
+```
+
+# Análisis exploratorio
+
+Habiendo reconstruido este dataset, exploremoslo
+
+#### Distribución por regiones espaciales
+
+```{r}
+individual_03to22 %>% 
+  ggplot(aes(x=REGION)) + geom_bar(aes(y = ..count..))
+```
+
+La región pampeana es la más común (43), seguida por el NOA (40) y el GBA (1), luego la Patagonia (44), el NEA (41) y Cuyo (42).
+
+```{r}
+individual_03to22 %>% 
+  group_by(AGLOMERADO) %>%
+  summarise('MILLONES_PERSONAS'=n()/1e6) %>%
+  ggplot(aes(y=fct_reorder(AGLOMERADO,MILLONES_PERSONAS),x=MILLONES_PERSONAS)) + 
+  geom_col() +
+  ylab('')
+```
+
+
+Cruzemos ambas variables
+
+```{r}
+individual_03to22 %>% 
+  ggplot(aes(y=REGION,fill=AGLOMERADO)) + geom_bar()
+````
+Lo único útil que tiene este gráfico es que muestra que las regiones más populosas también son las que más aglomerados incluyen.
+
+Algunos números:
+
+Personas por REGION
+```{r message=FALSE, warning=FALSE}
+individual_03to22 %>% 
+  group_by(REGION) %>%
+  summarise(PERSONAS_REGIONxMILLON = n()/1e6) %>%
+  select(PERSONAS_REGIONxMILLON) %>% 
+  summary()
+```
+
+Personas por AGLOMERADO
+```{r message=FALSE, warning=FALSE}
+individual_03to22 %>% 
+  group_by(AGLOMERADO) %>%
+  summarise(PERSONAS_AGLOMERADOxMILLON = n()/1e6) %>%
+  select(PERSONAS_AGLOMERADOxMILLON) %>% 
+  summary()
+```
+
+#### Distribución por características de las personas
+##### GENERO
+
+En el total de la base
+```{r}
+individual_03to22 %>%
+  ggplot(aes(x=GENERO)) + geom_bar()
+```
+
+En el tiempo
+
+```{r}
+individual_03to22 %>% 
+  group_by(ANO4,TRIMESTRE) %>%
+  summarise(MUJERES = sum(GENERO=='MUJER'), VARONES = sum(GENERO=='VARON')) %>%
+  mutate(COCIENTE_FEM = MUJERES/VARONES) %>%
+  mutate(FECHA_EPH = as.Date(paste(ANO4,3*TRIMESTRE,1,sep='-'))) %>%
+  ggplot(aes(x=FECHA_EPH,y=COCIENTE_FEM)) + geom_point() + geom_smooth() +
+  ylim(c(0.8,1.2))
+```
+
+
+Vemos que la población por género es similar, habiendo lévemente más mujeres que varones. Veamos la distribución por edad 
+
+Total, agregando todas las encuestas
+
+```{r message=FALSE, warning=FALSE}
+individual_03to22 %>%
+  ggplot(aes(x=EDAD)) + geom_histogram()
+```
+
+En el tiempo:
+
+```{r}
+library(ggridges)
+individual_03to22 %>%
+  filter(TRIMESTRE == 3) %>%
+  mutate(ENCUESTA = as.Date(paste(ANO4,3*TRIMESTRE,1,sep='-'))) %>% 
+  ggplot(aes(x=EDAD,y = ENCUESTA,group=ENCUESTA)) +
+  geom_density_ridges(scale=4)
+```
+
+
+
+Al considerar la edad construida por la fecha de nacimiento, encontramos que hay personas con edades negativas y edades mayores a 100 años. Ambas proporciones son menores a 1%. Probablemente se deban a errores de carga.
+
+```{r}
+individual_03to22 %>%
+  ggplot(aes(x=EDAD,y=EDAD_FECHA)) +
+  geom_point()
+
+```
+
+
+Veamos como se relaciona el SEXO con la EDAD
+
+```{r message=FALSE, warning=FALSE}
+library(ggridges)
+individual_03to22 %>%
+  filter(TRIMESTRE == 3) %>%
+  filter(GENERO != 'N/A') %>%
+  mutate(ENCUESTA = as.Date(paste(ANO4,3*TRIMESTRE,1,sep='-'))) %>% 
+  ggplot(aes(x=EDAD,y = ENCUESTA,group=ENCUESTA)) +
+  geom_density_ridges(scale=4) +
+  facet_wrap(facets = ~ GENERO )
+```
+
+Ambas distribuciones son muy similares. Si esto interesase más podría tener sentido hacer un gráfico más detallado.
+
+#### Relación con aspectos laborales
+
+Veamos como se relacionan la edad y el género con el rol de la persona en el hogar:
+
+```{r message=FALSE, warning=FALSE}
+individual_03to22 %>% 
+  ggplot(aes(x=EDAD)) +
+  geom_histogram(aes(y = ..density..)) + facet_wrap(~ ROL_HOGAR,nrow=2)
+```
+
+Este gráfico tiene un montón de información sobre la edad de cada rol. Le jefe de familia está entre 25 y 75 años, conyugues sin hijes se concentran hacia los menores de 50, mientras que Madre/Padre a mayor de 50. Hermanes tienen pico en 25 años, y hijes por debajo de 25 años. Suegrxs concentran por arriba de 70 años y Yerno/Nuera en 25 años. Personas que no son de la familiar (probablemente casas de amigues) concentran en 25 años.
+
+
+```{r message=FALSE, warning=FALSE}
+individual_03to22 %>% 
+  group_by(ROL_HOGAR,GENERO) %>%
+  summarize(count = n()) %>%
+  group_by(ROL_HOGAR) %>%
+  mutate(prop_group = count/sum(count) ) %>%
+  ggplot(aes(x=ROL_HOGAR,y=prop_group)) +
+  geom_col(aes(fill=GENERO),position='dodge') + 
+  coord_flip()
+```
+
+Esto también es muy ilustrativo: Jefes del hogar suelen ser varones, y conyugues y madres/padres suelen ser mujeres. Hijes y Nietes son similares en cantidad. Nuevamente, se puede elaborar más.
+
+Pongamos en relación con la categoría ocupación:
+
+
+```{r message=FALSE, warning=FALSE}
+individual_03to22 %>% 
+  filter(TRIMESTRE == 3) %>%
+  filter(GENERO != 'N/A') %>% 
+  filter(CAT_OCUP != 'N/A') %>%
+  mutate(ROL_HOGAR = factor(ROL_HOGAR)) %>%
+  group_by(CAT_OCUP,GENERO,ANO4) %>%
+  summarize(count = n()) %>%
+  group_by(CAT_OCUP,ANO4) %>%
+  mutate(prop_group = count/sum(count) ) %>%
+  ggplot(aes(x=CAT_OCUP,y=prop_group)) +
+  geom_col(aes(fill=GENERO),position='dodge') + coord_flip() + 
+    facet_wrap(~ANO4)
+```
+La personas ocupadas suelen ser varones y las personas inactivas mujeres. Menores de 10 años y Desocupades son similares.
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+individual_03to22 %>% 
+  filter(EDAD > 0 & EDAD < 100) %>%
+  mutate(SEXO = case_when(
+    CH04 == 1 ~ 'M', 
+    CH04 == 2 ~ 'F', 
+    TRUE ~ 'N/A')) %>% 
+  filter(SEXO != 'N/A') %>% 
+  mutate(ROL_HOGAR = case_when(
+    CH03 == 1 ~ 'Jefe',
+    CH03 == 2 ~ 'Conyuge',
+    CH03 == 3 ~ 'Hije',
+    CH03 == 4 ~ 'Yerno/nuera',
+    CH03 == 5 ~ 'Niete',
+    CH03 == 6 ~ 'Madre/Padre',
+    CH03 == 7 ~ 'Suegrx',
+    CH03 == 8 ~ 'Hermane',
+    CH03 == 9 ~ 'Otro fliar',
+    CH03 == 10 ~ 'No fliar',
+    TRUE ~ 'N/A'
+  )) %>% 
+  mutate(ESTADO_C = case_when(
+    ESTADO == 1 ~ 'Ocupade',
+    ESTADO == 2 ~ 'Desocupade',
+    ESTADO == 3 ~ 'Inactive',
+    ESTADO == 4 ~ 'Menor10',
+    TRUE ~ 'N/A'
+  )) %>%
+  filter(ESTADO_C != 'N/A') %>%
+  mutate(ESTADO_C = factor(ESTADO_C)) %>%
+  mutate(ROL_HOGAR = factor(ROL_HOGAR)) %>%
+  group_by(ESTADO_C,ROL_HOGAR) %>%
+  summarize(count = n()) %>%
+  group_by(ROL_HOGAR) %>%
+  mutate(prop_group = count/sum(count) ) %>%
+  ggplot(aes(x=ROL_HOGAR,y=prop_group)) +
+  geom_col(aes(fill=ESTADO_C),position='dodge')
+```
+
+También un montón para elaborar acá: sólo rescatando algunas cosas: Madre/Padre suele ser inactive (probablemente las madres que vimos antes), al igual que Suegrx. Notablemente, Jefe suele ser Ocupade o Inactive.
+
+# Variables de la Economía Popular
+
+Construimos variables acorde a la tabla compartida:
+
+```{r eval=FALSE, include=FALSE}
+individual_03to22 <- individual_03to22 %>% 
+  mutate(ACTIVO_BIN = case_when(  # Variable ACTIVO_BIN
+    ESTADO == 1 | ESTADO == 2 ~ 1, # 1 si está ocupado o descoupado
+    TRUE ~ 0 # 0 si está inactivo o menor10
+  )) %>%
+  mutate(OCUPADO_BIN = case_when(  # Variable OCUPADO_BIN
+    ESTADO == 1 | ESTADO == 2 ~ 1, # 1 si está ocupado
+    TRUE ~ 0 # 0 si está inactivo o menor10 o desocupado
+  )) %>%
+  mutate(CUENTAPROPISTA_BIN = case_when(
+    CAT_OCUP == 2 ~ 1, 
+    TRUE ~ 0
+  )) #%>%
+  # mutate(CUENTAPROPPROF_BIN = case_when( # Preguntar como se arma
+  #   CUENTAPROPISTA_BIN == 1 & PP04D_COD == 1 ~ 1,
+  #   
+  # ))
+  
+```
+
+```{r eval=FALSE, include=FALSE}
+individual_03to22 <- individual_03to22 %>% 
+  filter(EDAD > 0 & EDAD < 100) %>%
+  mutate(SEXO = case_when(
+    CH04 == 1 ~ 'M', 
+    CH04 == 2 ~ 'F', 
+    TRUE ~ 'N/A')) %>% 
+  filter(SEXO != 'N/A') %>% 
+  mutate(ROL_HOGAR = case_when(
+    CH03 == 1 ~ 'Jefe',
+    CH03 == 2 ~ 'Conyuge',
+    CH03 == 3 ~ 'Hije',
+    CH03 == 4 ~ 'Yerno/nuera',
+    CH03 == 5 ~ 'Niete',
+    CH03 == 6 ~ 'Madre/Padre',
+    CH03 == 7 ~ 'Suegrx',
+    CH03 == 8 ~ 'Hermane',
+    CH03 == 9 ~ 'Otro fliar',
+    CH03 == 10 ~ 'No fliar',
+    TRUE ~ 'N/A'
+  )) %>% 
+  mutate(ESTADO_C = case_when(
+    ESTADO == 1 ~ 'Ocupade',
+    ESTADO == 2 ~ 'Desocupade',
+    ESTADO == 3 ~ 'Inactive',
+    ESTADO == 4 ~ 'Menor10',
+    TRUE ~ 'N/A'
+  )) %>%
+  filter(ESTADO_C != 'N/A') %>%
+  mutate(ESTADO_C = factor(ESTADO_C)) %>%
+  mutate(ROL_HOGAR = factor(ROL_HOGAR))
+```
+
+
+
+Veamos población cuentapropistas por género y edad
+
+```{r eval=FALSE, include=FALSE}
+individual_03to22 %>% 
+  mutate(ES_CUENTAPROPISTA = ifelse(CUENTAPROPISTA_BIN==1,'SI','NO')) %>%
+  ggplot(aes(x=EDAD,color=ES_CUENTAPROPISTA,linetype = SEXO)) +
+  geom_density()
+```  
+
+Cuentapropismo en función del tiempo:
+
+```{r eval=FALSE, include=FALSE}
+individual_03to22 %>% 
+  filter(CUENTAPROPISTA_BIN ==1 ) %>%
+  ggplot(aes(x=FECHA_EPH)) +
+  geom_density()
+```
+
+¿Esta curva muestra es el resultado de la pandemia?
+
+## Familia tipo
+
+¿Cómo es la composición de una familia según la EPH? Podemos observar esto identificando para cada encuesta las distintas familias
+
+```{r eval=FALSE, include=FALSE}
+individual_03to22 %>%
+  filter(ANO4 == 2021) %>%
+  filter(TRIMESTRE == 2) %>%
+  group_by(CODUSU) %>% 
+  summarise(fam = paste(sort(ROL_HOGAR),collapse=', ')) %>%
+  group_by(fam) %>%
+  summarise(casos = n()) %>%
+  mutate(prop = casos/sum(casos)) %>%
+  arrange(desc(prop)) -> familias_casos
+  
+
+familias_casos %>% filter(prop>1/100) %>% ggplot(aes(y=fam,x=prop)) + geom_col()
+  
+
+```
+
+```{r eval=FALSE, include=FALSE}
+familia_a_fila <- function(fami){
+  
+}
+
+
+famlvls <- familias_casos$fam %>% str_split(', ') %>% unlist %>% unique
+
+tabifam <- familias_casos$fam %>% str_split(', ') %>% lapply(factor,levels = famlvls) %>% lapply(table) %>% do.call(rbind,.) 
+
+cuentas <- familias_casos$prop %*% tabifam
+
+barplot(cuentas,las=2,cex.names = .7)
+abline(h=0.5)
+```
+
+#### Hogares encuestados a lo largo del tiempo
+
+Miramos la intersección con la fecha anterior.
+
+```{r eval=FALSE, include=FALSE}
+idfeph_u = individual_03to22 %>% 
+  mutate(idfeph = paste(ANO4,TRIMESTRE,sep='')) %>%
+  select(idfeph) %>% unlist %>% unique
+idfeph_u = sort(idfeph_u)  
+
+individual_03to22 <- individual_03to22 %>% 
+  mutate(idfeph = paste(ANO4,TRIMESTRE,sep='')) %>%
+  mutate(ideph = match(idfeph,idfeph_u))
+
+its <- sapply(2:length(idfeph_u),function(i){
+  codusu2 = individual_03to22 %>% filter(idfeph==idfeph_u[i]) %>% select(CODUSU) %>% unlist() %>% unique()
+  codusu1 = individual_03to22 %>% filter(idfeph==idfeph_u[i-1]) %>% select(CODUSU) %>% unlist() %>% unique()
+  length(intersect(codusu1,codusu2))/length(union(codusu1,codusu2))
+})
+
+its
+```
+

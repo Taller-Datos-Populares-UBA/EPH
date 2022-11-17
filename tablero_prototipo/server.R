@@ -62,16 +62,41 @@ shinyServer(function(input, output) {
         across(input$variable_zona, ~.x %in% zonas),
         across(paste('EDAD',input$variable_edad,sep='_'), ~.x %in% edades)
       ) %>%
+      filter(SEXO != 'N/A') %>%
       group_by_at(grouping_vars) %>%
-      summarise(ECONOMIA_POPULAR = sum(ECONOMIA_POPULAR)) %>% 
-      mutate('FECHA' = as.Date(paste(YEAR,3*TRIMESTER,1,sep='-'))) %>% 
-      ungroup() %>% 
+      summarise(ECONOMIA_POPULAR = sum(ECONOMIA_POPULAR),
+                RESTO_CUENTAPROPISTAS = sum(RESTO_CUENTAPROPISTAS),
+                ASALARIADOS_REGISTRADOS = sum(ASALARIADOS_REGISTRADOS),
+                ASALARIADOS_NOREGISTRADOS = sum(ASALARIADOS_NOREGISTRADOS),
+                PATRONES = sum(PATRONES)) %>% 
+      pivot_longer(cols = c(
+        'ECONOMIA_POPULAR',
+        'RESTO_CUENTAPROPISTAS',
+        'ASALARIADOS_REGISTRADOS',
+        'ASALARIADOS_NOREGISTRADOS',
+        'PATRONES'),
+        names_to = 'OCUPACIONES',
+        values_to = 'PERSONAS') %>% 
+      ungroup() %>%
+      filter(OCUPACIONES %in% c('ECONOMIA_POPULAR',input$ocupaciones)) %>%
+      mutate(FECHA = as.Date(paste(YEAR,3*TRIMESTER,1,sep='-'))) %>% 
       ggplot(aes_plot) +
-      geom_pointline(size = 2) +
+      geom_point() +
+      geom_line() +
       ylab('Economía Popular  [Millones de personas]') +
       theme_light() +
       theme(axis.title = element_text(size=15),
-            axis.text = element_text(size=12))
+            axis.text = element_text(size=12)) +
+      scale_linetype()
+    
+      # ocupa_labels <- case_when(
+      #   input$ocupaciones == 'RESTO_CUENTAPROPISTAS' ~ 'RESTO CP',
+      #   input$ocupaciones == 'ASALARIADOS_REGISTRADOS' ~ 'Asal R',
+      #   input$ocupaciones == 'ASALARIADOS_NOREGISTRADOS' ~ 'Asal NR',
+      #   input$ocupaciones == 'PATRONES' ~ 'Pat',
+      # )
+      # names(ocupa_labels) <- input$ocupaciones
+      
 
     })
   

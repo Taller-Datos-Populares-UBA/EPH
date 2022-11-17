@@ -29,7 +29,20 @@ genera_resumen <- function(df){
       'TFSR' = sum(
         PONDERA * 
           (CATEGORIA_OCUPACION == 'TRABAJADORE FLIAR S.R.'),na.rm=TRUE),
-      'ECONOMIA_POPULAR' = sum(ES_EP*PONDERA,na.rm=TRUE)
+      "ASALARIADOS_REGISTRADOS" = sum(
+        PONDERA * (
+          CATEGORIA_OCUPACION == 'ASALARIADE' & REGISTRACION == 1),na.rm=TRUE
+      ),
+      "ASALARIADOS_NOREGISTRADOS" = sum(
+        PONDERA * (
+          CATEGORIA_OCUPACION == 'ASALARIADE' & REGISTRACION == 2),na.rm=TRUE
+      ),
+      "PATRONES" = sum(
+        PONDERA * (
+          CATEGORIA_OCUPACION == 'PATRON'), na.rm=TRUE
+      ),
+      'ECONOMIA_POPULAR' = sum(ES_EP*PONDERA,na.rm=TRUE),
+      "RESTO_CUENTAPROPISTAS" = CUENTAPROPISTAS - ECONOMIA_POPULAR
     ) %>% 
     return()
 }
@@ -45,17 +58,19 @@ genera_aes_cantTrabEP_plot <- function(input){
         
         aes_plot <- aes_(
           x = ~ FECHA,
-          y = ~ (ECONOMIA_POPULAR)/1e6, 
-          group = as.formula( paste('~paste( SEXO,', input$variable_zona, ')' )), 
+          y = ~ (PERSONAS)/1e6, 
+          group = as.formula( paste('~paste( SEXO,', input$variable_zona, ',OCUPACIONES)' )), 
           color = as.formula( paste('~', input$variable_zona )),
+          linetype = ~ OCUPACIONES,
           shape = ~ SEXO)
         
       }else{ # Si no separamos por región
         
         aes_plot <- aes_(
           x = ~ FECHA,
-          y = ~ (ECONOMIA_POPULAR)/1e6, 
-          group = ~ SEXO, 
+          y = ~ (PERSONAS)/1e6, 
+          linetype = ~ OCUPACIONES,
+          group = ~ paste(SEXO,OCUPACIONES),  
           shape = ~ SEXO)
         
       }
@@ -64,15 +79,18 @@ genera_aes_cantTrabEP_plot <- function(input){
         
         aes_plot <- aes_(
           x = ~ FECHA,
-          y = ~ (ECONOMIA_POPULAR)/1e6, 
+          y = ~ (PERSONAS)/1e6, 
+          linetype = ~ OCUPACIONES,
           group = as.formula(paste('~',input$variable_zona)), 
-          color = as.formula(paste('~',input$variable_zona)))
+          color = as.formula(paste('~¨',input$variable_zona)))
         
       }else{ # Si no separamos por región
         
         aes_plot <- aes_(
-          x = ~ FECHA,
-          y = ~ (ECONOMIA_POPULAR)/1e6)
+          y = ~ (PERSONAS)/1e6,
+          linetype = ~ OCUPACIONES,
+          x = ~ FECHA
+          )
         
       }
     }
@@ -81,27 +99,36 @@ genera_aes_cantTrabEP_plot <- function(input){
 
 genera_grouping_vars_cantTrabEP_plot <- function(input){
   #'@description Esta función genera el agrupamiento necesario para el plot cantTrabEP_plot
-  if(input$separar_sexos){ # Si separamos por sexo
-    if(input$separar_zonas){
-    
-      grouping_vars <- quos('SEXO','YEAR','TRIMESTER', input$variable_zona)
-      
-    }else{
-      
-      grouping_vars <- quos('SEXO','YEAR','TRIMESTER')
-      
-    }
-  }else {
-    if(input$separar_zonas){
-      
-      grouping_vars <- quos('YEAR','TRIMESTER', input$variable_zona)
-      
-    }else{
-      
-      grouping_vars <- quos('YEAR','TRIMESTER')
-      
-    }
+  # if(input$separar_sexos){ # Si separamos por sexo
+  #   if(input$separar_zonas){
+  #   
+  #     grouping_vars <- quos('SEXO','YEAR','TRIMESTER', input$variable_zona)
+  #     
+  #   }else{
+  #     
+  #     grouping_vars <- quos('SEXO','YEAR','TRIMESTER')
+  #     
+  #   }
+  # }else {
+  #   if(input$separar_zonas){
+  #     
+  #     grouping_vars <- quos('YEAR','TRIMESTER', input$variable_zona)
+  #     
+  #   }else{
+  #     
+  #     grouping_vars <- quos('YEAR','TRIMESTER')
+  #     
+  #   }
+  # }
+  
+  agrupar <- c("YEAR", "TRIMESTER")
+  if(input$separar_sexos){
+    agrupar <- c(agrupar, "SEXO")
   }
+  if(input$separar_zonas){
+    agrupar<- c(agrupar, input$variable_zona)
+  }
+  grouping_vars <- quos(agrupar)
   return(grouping_vars)
 }
 

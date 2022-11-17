@@ -19,6 +19,16 @@ shinyUI(navbarPage("La Economía Popular",
                              "¿Separar por zonas?",
                              value=FALSE),
                
+               checkboxInput("agregar_ocupados",
+                             "¿Separar por ocupación?",
+                             value=FALSE),
+               
+               checkboxGroupInput("ocupaciones", 
+                                  "¿Separar por ocupación?",
+                                  choiceNames = c("RESTO CUENTAPROPISTAS", "ASALARIADOS REGISTRADOS", "ASALARIADOS NO REGISTRADOS", "PATRONES"),
+                                  choiceValues = c("RESTO_CUENTAPROPISTAS", "ASALARIADOS_REGISTRADOS", "ASALARIADOS_NOREGISTRADOS", "PATRONES")
+                                  ),
+               
                sliderInput("slider_años", 
                            label = 'Rango de años',
                            min = 2003, 
