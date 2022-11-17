@@ -11,22 +11,25 @@ shinyUI(navbarPage("La Economía Popular",
            sidebarLayout(
              sidebarPanel(
                
-               checkboxInput("separar_sexos",
-                             "¿Separar por sexo?",
+               checkboxInput("separar_genero",
+                             "¿Separar por género?",
                              value=FALSE),
                
                checkboxInput("separar_zonas",
                              "¿Separar por zonas?",
                              value=FALSE),
                
-               checkboxInput("agregar_ocupados",
-                             "¿Separar por ocupación?",
-                             value=FALSE),
                
                checkboxGroupInput("ocupaciones", 
                                   "¿Separar por ocupación?",
-                                  choiceNames = c("RESTO CUENTAPROPISTAS", "ASALARIADOS REGISTRADOS", "ASALARIADOS NO REGISTRADOS", "PATRONES"),
-                                  choiceValues = c("RESTO_CUENTAPROPISTAS", "ASALARIADOS_REGISTRADOS", "ASALARIADOS_NOREGISTRADOS", "PATRONES")
+                                  choiceNames = c("RESTO CUENTAPROPISTAS", 
+                                                  "ASALARIADOS REGISTRADOS", 
+                                                  "ASALARIADOS NO REGISTRADOS",
+                                                  "PATRONES"),
+                                  choiceValues = c("RESTO_CUENTAPROPISTAS",
+                                                   "ASALARIADOS_REGISTRADOS",
+                                                   "ASALARIADOS_NOREGISTRADOS", 
+                                                   "PATRONES")
                                   ),
                
                sliderInput("slider_años", 
@@ -77,8 +80,8 @@ shinyUI(navbarPage("La Economía Popular",
                  multiple = FALSE,
                  selected = "POBREZA"),
                
-               checkboxInput("separar_sexos_t2",
-                             "¿Separar por sexo?",
+               checkboxInput("separar_genero_t2",
+                             "¿Separar por género?",
                              value=FALSE),
                
                sliderInput("slider_años_t2", 
@@ -88,6 +91,15 @@ shinyUI(navbarPage("La Economía Popular",
                            value = c(2016, 2022),
                            step = 1,
                            sep = ''),
+               
+               checkboxGroupInput("ocupaciones_t2", 
+                                  "¿Separar por ocupación?",
+                                  choiceNames = c("OCUPADES NO EP", 
+                                                  "OCUPADES"),
+                                  choiceValues = c("tasa_OCU_NEP",
+                                                   "tasa_OCU")
+               ),
+               
                
                selectInput(
                  inputId = "variable_zona_t2",

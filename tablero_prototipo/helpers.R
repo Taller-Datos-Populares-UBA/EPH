@@ -53,13 +53,13 @@ genera_resumen <- function(df){
 
 genera_aes_cantTrabEP_plot <- function(input){
   #' @description Esta función se encarga de generar el objeto estético para el plot cantTrabEP_plot
-  if(input$separar_sexos){ # Si separamos por sexo
+  if(input$separar_genero){ # Si separamos por sexo
       if(input$separar_zonas){ # Si separamos por región
         
         aes_plot <- aes_(
           x = ~ FECHA,
           y = ~ (PERSONAS)/1e6, 
-          group = as.formula( paste('~paste( SEXO,', input$variable_zona, ',OCUPACIONES)' )), 
+          #group = as.formula( paste('~paste( SEXO,', input$variable_zona, ',OCUPACIONES)' )), 
           color = as.formula( paste('~', input$variable_zona )),
           linetype = ~ OCUPACIONES,
           shape = ~ SEXO)
@@ -70,7 +70,7 @@ genera_aes_cantTrabEP_plot <- function(input){
           x = ~ FECHA,
           y = ~ (PERSONAS)/1e6, 
           linetype = ~ OCUPACIONES,
-          group = ~ paste(SEXO,OCUPACIONES),  
+          #group = ~ paste(SEXO,OCUPACIONES),  
           shape = ~ SEXO)
         
       }
@@ -81,8 +81,8 @@ genera_aes_cantTrabEP_plot <- function(input){
           x = ~ FECHA,
           y = ~ (PERSONAS)/1e6, 
           linetype = ~ OCUPACIONES,
-          group = as.formula(paste('~',input$variable_zona)), 
-          color = as.formula(paste('~¨',input$variable_zona)))
+          #group = as.formula(paste('~',input$variable_zona)), 
+          color = as.formula(paste('~',input$variable_zona)))
         
       }else{ # Si no separamos por región
         
@@ -122,7 +122,7 @@ genera_grouping_vars_cantTrabEP_plot <- function(input){
   # }
   
   agrupar <- c("YEAR", "TRIMESTER")
-  if(input$separar_sexos){
+  if(input$separar_genero){
     agrupar <- c(agrupar, "SEXO")
   }
   if(input$separar_zonas){
@@ -135,7 +135,7 @@ genera_grouping_vars_cantTrabEP_plot <- function(input){
 
 genera_aes_pobrezaEP_plot <- function(input){
   #' @description Esta función se encarga de generar el objeto estético para el plot cantTrabEP_plot
-  if(input$separar_sexos_t2){ # Si separamos por sexo
+  if(input$separar_genero_t2){ # Si separamos por sexo
       #aes( x = FECHA, color = tasa_tipo, y = tasa)
       aes_plot <- aes_(
         x = ~ FECHA,
@@ -155,7 +155,7 @@ genera_aes_pobrezaEP_plot <- function(input){
 
 genera_grouping_vars_pobrezaEP_plot <- function(input){
   #'@description Esta función genera el agrupamiento necesario para el plot cantTrabEP_plot
-  if(input$separar_sexos_t2){ # Si separamos por sexo
+  if(input$separar_genero_t2){ # Si separamos por sexo
       grouping_vars <- quos('SEXO','YEAR','TRIMESTER')
   }else {
     grouping_vars <- quos('YEAR','TRIMESTER')

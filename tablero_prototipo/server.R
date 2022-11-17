@@ -3,12 +3,13 @@
 #' @param cantTrabEP_plot Plot de la cantidad de trabajadorxs participando de la economía popular.
 
 # Objeto input contiene:
-#' @param separar_sexos Si es verdadero, se separan las líneas de los datos en base al sexo de las personas.
+#' @param separar_genero Si es verdadero, se separan las líneas de los datos en base al sexo de las personas.
 #' @param regiones Las regiones a considerar cuando graficamos. En caso de que sea NULL, consideramos todas las regiones.
 #' @param separar_zonas Si es verdadero, consideramos una curva distinta para cada una de las regiones consideradas.
 
 
 shinyServer(function(input, output) {
+  #### Primer panel
   output$zonas_posibles <- renderUI({
     opciones <- individual_03.hoy %>% 
       select_at(input$variable_zona) %>%
@@ -54,7 +55,16 @@ shinyServer(function(input, output) {
     
     aes_plot <- genera_aes_cantTrabEP_plot(input)
     grouping_vars <- genera_grouping_vars_cantTrabEP_plot(input)
-    
+  
+    ocupa_labels <- case_when(
+      input$ocupaciones == 'RESTO_CUENTAPROPISTAS' ~ 'RESTO CP',
+      input$ocupaciones == 'ASALARIADOS_REGISTRADOS' ~ 'Asal R',
+      input$ocupaciones == 'ASALARIADOS_NOREGISTRADOS' ~ 'Asal NR',
+      input$ocupaciones == 'PATRONES' ~ 'Pat',
+    )
+    names(ocupa_labels) <- input$ocupaciones
+    ocupa_labels <- c(ocupa_labels, 'ECONOMIA_POPULAR' = 'EP')
+
     individual_03.hoy %>% ungroup() %>%
       filter(
         YEAR > input$slider_años[1],
@@ -87,15 +97,10 @@ shinyServer(function(input, output) {
       theme_light() +
       theme(axis.title = element_text(size=15),
             axis.text = element_text(size=12)) +
-      scale_linetype()
+      scale_linetype(labels = function(x) ocupa_labels[x]) +
+      scale_shape(name = 'GÉNERO')
     
-      # ocupa_labels <- case_when(
-      #   input$ocupaciones == 'RESTO_CUENTAPROPISTAS' ~ 'RESTO CP',
-      #   input$ocupaciones == 'ASALARIADOS_REGISTRADOS' ~ 'Asal R',
-      #   input$ocupaciones == 'ASALARIADOS_NOREGISTRADOS' ~ 'Asal NR',
-      #   input$ocupaciones == 'PATRONES' ~ 'Pat',
-      # )
-      # names(ocupa_labels) <- input$ocupaciones
+
       
 
     })
@@ -144,6 +149,13 @@ shinyServer(function(input, output) {
       select_at(paste('EDAD',input$variable_edad_t2,sep='_')) %>%
       unique %>% unlist 
     
+    if(input$tasa_tipo == 'POBREZA'){
+      situaciones <- c('pobre','indigente')
+    }else{
+      situaciones <- c('indigente')
+    }
+    
+    
     aes_plot <- genera_aes_pobrezaEP_plot(input)
     grouping_vars <- genera_grouping_vars_pobrezaEP_plot(input)
     
@@ -156,23 +168,21 @@ shinyServer(function(input, output) {
       ) %>%
       group_by_at(grouping_vars) %>%
       summarise(
-        tasa_pobreza_EP = sum(ECONOMIA_POPULAR[situacion %in% c('pobre','indigente')],na.rm=TRUE)/sum(ECONOMIA_POPULAR,na.rm=TRUE),
-        tasa_indigencia_EP = sum(ECONOMIA_POPULAR[situacion %in% c('indigente')],na.rm=TRUE)/sum(ECONOMIA_POPULAR,na.rm=TRUE),
-        tasa_pobreza_OCU_NEP = sum(OCUPADES_NO_EP[situacion %in% c('pobre','indigente')],na.rm=TRUE)/sum(OCUPADES_NO_EP,na.rm=TRUE),
-        tasa_indigencia_OCU_NEP = sum(OCUPADES_NO_EP[situacion %in% c('indigente')],na.rm=TRUE)/sum(OCUPADES_NO_EP,na.rm=TRUE),
-        tasa_pobreza = sum((ECONOMIA_POPULAR + OCUPADES_NO_EP)[situacion %in% c('pobre','indigente')],na.rm=TRUE)/sum((ECONOMIA_POPULAR + OCUPADES_NO_EP),na.rm=TRUE),
-        tasa_indigencia = sum((ECONOMIA_POPULAR + OCUPADES_NO_EP)[situacion %in% c('indigente')],na.rm=TRUE)/sum((ECONOMIA_POPULAR + OCUPADES_NO_EP),na.rm=TRUE)
+        tasa_EP = sum(ECONOMIA_POPULAR[situacion %in% situaciones],na.rm=TRUE)/sum(ECONOMIA_POPULAR,na.rm=TRUE),
+        tasa_OCU_NEP = sum(OCUPADES_NO_EP[situacion %in% situaciones],na.rm=TRUE)/sum(OCUPADES_NO_EP,na.rm=TRUE),
+        tasa_OCU = sum((ECONOMIA_POPULAR + OCUPADES_NO_EP)[situacion %in% situaciones],na.rm=TRUE)/sum((ECONOMIA_POPULAR + OCUPADES_NO_EP),na.rm=TRUE)
       ) %>%
       mutate(FECHA = as.Date(paste(YEAR,4*TRIMESTER,'1',sep='-'))) %>%
-      pivot_longer(cols = c(tasa_pobreza_EP,tasa_indigencia_EP,tasa_pobreza_OCU_NEP,tasa_indigencia_OCU_NEP,tasa_pobreza,tasa_indigencia),names_to = 'tasa_tipo',values_to = 'tasa') %>%
+      pivot_longer(cols = c(tasa_EP,
+                            tasa_OCU_NEP,
+                            tasa_OCU),
+                   names_to = 'tasa_tipo',
+                   values_to = 'tasa') %>%
       drop_na() %>% 
-      filter(grepl(
-        tolower(input$tasa_tipo),
-        tasa_tipo)
-      ) %>%
+      filter(is.element(tasa_tipo,c(input$ocupaciones_t2,'tasa_EP'))) %>%
       mutate(
         tasa_tipo = case_when(
-          str_detect(tasa_tipo,'OCU') ~ 'OCUPADES NO EP',
+          str_detect(tasa_tipo,'OCU_NEP') ~ 'OCUPADES NO EP',
           str_detect(tasa_tipo,'EP') ~ 'EP',
           TRUE ~ 'POB. TOT.')
       ) %>%
@@ -183,7 +193,8 @@ shinyServer(function(input, output) {
       theme_light() +
       theme(axis.title = element_text(size=15),
             axis.text = element_text(size=12)) +
-      theme(legend.position = c(.3,.8))
+      theme(legend.position = c(.3,.8)) +
+      scale_shape(name = 'GÉNERO')
       
   })
 })
