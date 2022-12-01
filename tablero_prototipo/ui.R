@@ -18,18 +18,22 @@ shinyUI(navbarPage("La Economía Popular",
                checkboxInput("separar_zonas",
                              "¿Separar por zonas?",
                              value=FALSE),
-               
+               checkboxInput("porcentaje_pea",
+                             "¿Graficar como porcentaje de la PEA?",
+                             value=FALSE),
                
                checkboxGroupInput("ocupaciones", 
                                   "¿Separar por ocupación?",
                                   choiceNames = c("RESTO CUENTAPROPISTAS", 
                                                   "ASALARIADOS REGISTRADOS", 
                                                   "ASALARIADOS NO REGISTRADOS",
-                                                  "PATRONES"),
+                                                  "PATRONES",
+                                                  'DESOCUPADES'),
                                   choiceValues = c("RESTO_CUENTAPROPISTAS",
                                                    "ASALARIADOS_REGISTRADOS",
                                                    "ASALARIADOS_NOREGISTRADOS", 
-                                                   "PATRONES")
+                                                   "PATRONES",
+                                                   "DESOCUPADES")
                                   ),
                
                sliderInput("slider_años", 
@@ -124,7 +128,9 @@ shinyUI(navbarPage("La Economía Popular",
              
              # Gráfico de cantidad de personas participando de la economía popular
              mainPanel(
-               plotOutput("pobrezaEP_plot")
+               plotOutput("pobrezaEP_plot"),
+               plotOutput("barrasEP_plot"),
+               textOutput("plata_para_salir")
              )
            )
   )

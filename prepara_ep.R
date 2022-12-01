@@ -206,6 +206,18 @@ individual_03.hoy <-
 #### CALCULO DE POBREZA
 
 canastas <- read.csv('canastas_confiable.csv')
+canastas <- canastas %>% 
+  mutate(
+    region = case_when(
+      region == 'Noreste' ~ 'NEA',
+      region == 'Noroeste' ~ 'NOA',
+      TRUE ~ region
+    )
+  ) %>%
+  mutate(
+    region = toupper(region)
+  ) 
+
 
 individual_03.hoy <- calcula_pobreza_individual(individual_03.hoy,basket = canastas)
 
