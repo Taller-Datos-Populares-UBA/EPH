@@ -65,7 +65,7 @@ genera_aes_cantTrabEP_plot <- function(input){
         
         aes_plot <- aes_(
           x = ~ FECHA,
-          y = ifelse(!input$porcentaje_pea, list(~ (PERSONAS)/1e6),list(~PORC_PEA))[[1]], 
+          y = ifelse(!input$usar_porcentaje_pea, list(~ (PERSONAS)/1e6),list(~PORC_PEA))[[1]], 
           #group = as.formula( paste('~paste( SEXO,', input$variable_zona, ',OCUPACIONES)' )), 
           linetype = as.formula( paste('~', input$variable_zona )),
           color = ~ OCUPACIONES,
@@ -75,7 +75,7 @@ genera_aes_cantTrabEP_plot <- function(input){
         
         aes_plot <- aes_(
           x = ~ FECHA,
-          y = ifelse(!input$porcentaje_pea, list(~ (PERSONAS)/1e6),list(~PORC_PEA))[[1]], 
+          y = ifelse(!input$usar_porcentaje_pea, list(~ (PERSONAS)/1e6),list(~PORC_PEA))[[1]], 
           color = ~ OCUPACIONES,
           #group = ~ paste(SEXO,OCUPACIONES),  
           shape = ~ SEXO)
@@ -86,7 +86,7 @@ genera_aes_cantTrabEP_plot <- function(input){
         
         aes_plot <- aes_(
           x = ~ FECHA,
-          y = ifelse(!input$porcentaje_pea, list(~ (PERSONAS)/1e6),list(~PORC_PEA))[[1]], 
+          y = ifelse(!input$usar_porcentaje_pea, list(~ (PERSONAS)/1e6),list(~PORC_PEA))[[1]], 
           color = ~ OCUPACIONES,
           #group = as.formula(paste('~',input$variable_zona)), 
           linetype = as.formula(paste('~',input$variable_zona)))
@@ -95,7 +95,7 @@ genera_aes_cantTrabEP_plot <- function(input){
         
         aes_plot <- aes_(
           x = ~ FECHA,
-          y = ifelse(!input$porcentaje_pea, list(~ (PERSONAS)/1e6),list(~PORC_PEA))[[1]],
+          y = ifelse(!input$usar_porcentaje_pea, list(~ (PERSONAS)/1e6),list(~PORC_PEA))[[1]],
           color = ~ OCUPACIONES
           )
         

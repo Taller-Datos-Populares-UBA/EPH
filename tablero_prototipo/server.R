@@ -37,10 +37,7 @@ shinyServer(function(input, output) {
       selected = c() )
   })
   
-  
-  output$cantTrabEP_plot <- renderPlot({
-    # La lógica es que construimos un vector grouping_vars y otro aes_plot que nos permita indicar qué variables usar para agrupar (a la hora de construir el dataset resumido, grouping vars) y qué graficar (aes_plot)
-  
+  dataset_p1 <- reactive({
     zonas <- unique(input$zonas)
     if( length(zonas) == 0 ) 
       zonas <- individual_03.hoy %>% 
@@ -50,22 +47,12 @@ shinyServer(function(input, output) {
     edades <- unique(input$edades)
     if( length(edades) == 0 ) 
       edades <- individual_03.hoy %>% 
-        select_at(paste('EDAD',input$variable_edad,sep='_')) %>%
-        unique %>% unlist 
+      select_at(paste('EDAD',input$variable_edad,sep='_')) %>%
+      unique %>% unlist 
     
-    aes_plot <- genera_aes_cantTrabEP_plot(input)
     grouping_vars <- genera_grouping_vars_cantTrabEP_plot(input)
-  
-    ocupa_labels <- case_when(
-      input$ocupaciones == 'RESTO_CUENTAPROPISTAS' ~ 'RESTO CP',
-      input$ocupaciones == 'ASALARIADOS_REGISTRADOS' ~ 'Asal R',
-      input$ocupaciones == 'ASALARIADOS_NOREGISTRADOS' ~ 'Asal NR',
-      input$ocupaciones == 'PATRONES' ~ 'Pat',
-      input$ocupaciones == 'DESOCUPADES' ~ 'DesOcup'
-    )
-    names(ocupa_labels) <- input$ocupaciones
-    ocupa_labels <- c(ocupa_labels, 'ECONOMIA_POPULAR' = 'EP')
-
+    
+    
     individual_03.hoy %>% ungroup() %>%
       filter(
         YEAR > input$slider_años[1],
@@ -96,11 +83,28 @@ shinyServer(function(input, output) {
       ungroup() %>%
       filter(OCUPACIONES %in% c('ECONOMIA_POPULAR',input$ocupaciones)) %>%
       mutate(PORC_PEA = PERSONAS/PEA*100) %>%
-      mutate(FECHA = as.Date(paste(YEAR,3*TRIMESTER,1,sep='-'))) %>% 
+      mutate(FECHA = as.Date(paste(YEAR,3*TRIMESTER,1,sep='-')))
+  })
+  
+  output$cantTrabEP_plot <- renderPlot({
+    # La lógica es que construimos un vector grouping_vars y otro aes_plot que nos permita indicar qué variables usar para agrupar (a la hora de construir el dataset resumido, grouping vars) y qué graficar (aes_plot)
+    ocupa_labels <- case_when(
+      input$ocupaciones == 'RESTO_CUENTAPROPISTAS' ~ 'RESTO CP',
+      input$ocupaciones == 'ASALARIADOS_REGISTRADOS' ~ 'Asal R',
+      input$ocupaciones == 'ASALARIADOS_NOREGISTRADOS' ~ 'Asal NR',
+      input$ocupaciones == 'PATRONES' ~ 'Pat',
+      input$ocupaciones == 'DESOCUPADES' ~ 'DesOcup'
+    )
+    names(ocupa_labels) <- input$ocupaciones
+    ocupa_labels <- c(ocupa_labels, 'ECONOMIA_POPULAR' = 'EP')
+    
+    aes_plot <- genera_aes_cantTrabEP_plot(input)
+    
+    
+    dataset_p1() %>% 
       ggplot(aes_plot) +
       geom_point() +
       geom_line() +
-      ylab('Millones de personas') +
       theme_light() +
       theme(axis.title = element_text(size=15),
             axis.text = element_text(size=12)) +
@@ -111,13 +115,19 @@ shinyServer(function(input, output) {
         date_minor_breaks = '3 months',
         labels = function(x) format(x,'%Y-%m')
       ) +
-      scale_y_continuous(name = ifelse(input$porcentaje_pea,'% PEA','Millones de personas')) +
+      scale_y_continuous(name = ifelse(input$usar_porcentaje_pea,'% PEA','Millones de personas')) +
       theme(axis.text.x = element_text(angle = 90))
     
 
       
 
     })
+  
+  output$descarga_p1 <- downloadHandler(
+    filename = 'datos_pestaña1.csv',
+    content = function(file) write.csv(dataset_p1(),file,row.names=FALSE)
+  )
+  
   
   ##### SEGUNDO PANEL
   
@@ -148,9 +158,7 @@ shinyServer(function(input, output) {
       selected = c() )
   })
   
-  output$pobrezaEP_plot <- renderPlot({
-    # La lógica es que construimos un vector grouping_vars y otro aes_plot que nos permita indicar qué variables usar para agrupar (a la hora de construir el dataset resumido, grouping vars) y qué graficar (aes_plot)
-    
+  dataset_p2 <- reactive({
     zonas <- unique(input$zonas_t2)
     if( length(zonas) == 0 ) 
       zonas <- individual_03.hoy %>% 
@@ -170,7 +178,6 @@ shinyServer(function(input, output) {
     }
     
     
-    aes_plot <- genera_aes_pobrezaEP_plot(input)
     grouping_vars <- genera_grouping_vars_pobrezaEP_plot(input)
     
     individual_03.hoy %>%
@@ -199,7 +206,15 @@ shinyServer(function(input, output) {
           str_detect(tasa_tipo,'OCU_NEP') ~ 'OCUPADES NO EP',
           str_detect(tasa_tipo,'EP') ~ 'EP',
           TRUE ~ 'POB. TOT.')
-      ) %>%
+      )
+  })
+  
+  
+  output$pobrezaEP_plot <- renderPlot({
+    # La lógica es que construimos un vector grouping_vars y otro aes_plot que nos permita indicar qué variables usar para agrupar (a la hora de construir el dataset resumido, grouping vars) y qué graficar (aes_plot)
+    aes_plot <- genera_aes_pobrezaEP_plot(input)
+    
+    dataset_p2() %>%
       ggplot(aes_plot) +
       geom_pointline() +
       scale_color_discrete(name = 'Población')+
@@ -235,8 +250,11 @@ shinyServer(function(input, output) {
     
     
     individual_03.hoy %>%
+      group_by(YEAR,TRIMESTER) %>%
+      filter(max(CB_ECONOMIA_POPULAR) > 0) %>%
+      ungroup() %>%
       filter(YEAR == max(YEAR)) %>%
-      filter(TRIMESTER == max(TRIMESTER)) %>% 
+      filter(TRIMESTER == max(TRIMESTER)) %>%
       filter(
         across(input$variable_zona_t2, ~.x %in% zonas),
         across(paste('EDAD',input$variable_edad_t2,sep='_'), ~.x %in% edades)
@@ -247,13 +265,17 @@ shinyServer(function(input, output) {
         LABORAL = sum(IL_ECONOMIA_POPULAR)/sum(ECONOMIA_POPULAR),
         NO_LABORAL = sum(INL_ECONOMIA_POPULAR)/sum(ECONOMIA_POPULAR)
       ) %>%
-      pivot_longer(cols = c('LABORAL','NO_LABORAL'),names_to = 'TIPO_INGRESO',values_to = 'INGRESO') %>%
+      mutate(LABORAL_porc = LABORAL/(LABORAL+NO_LABORAL)*100,
+             NO_LABORAL_porc = NO_LABORAL/(LABORAL+NO_LABORAL)*100) %>%
+      pivot_longer(cols = c('LABORAL_porc','NO_LABORAL_porc'),names_to = 'TIPO_INGRESO',values_to = 'INGRESO') %>%
+      mutate(TIPO_INGRESO = str_remove(TIPO_INGRESO,'_porc')) %>%
       mutate(TIPO_INGRESO = str_replace(TIPO_INGRESO,'_',' ')) %>%
       ggplot(aes_plot) +
       geom_bar(stat='identity',position='dodge') +
       scale_x_discrete(name = 'INGRESO') +
-      scale_y_continuous(name = 'Monto [pesos]') +
-      scale_fill_discrete(name = 'GENERO')
+      scale_y_continuous(name = '% del ingreso') +
+      scale_fill_discrete(name = 'GENERO') +
+      theme_light()
   })
     
   output$plata_para_salir <- renderText({
@@ -288,6 +310,12 @@ shinyServer(function(input, output) {
       ) %>%
       mutate(IFE_EP = CB_EP-IT_EP) %>%
       mutate(IFE_PROM = IFE_EP/EP_POB, IT_EP_PROM = IT_EP/EP_POB, CB_EP_PROM = CB_EP/EP_POB) -> resu_IFE
-    paste('La persona promedio perteneciente a la EP en las regiones consideradas, y en los periodos etarios elegidos necesita (en el año ',resu_IFE$YEAR,' y el trimestre ',resu_IFE$TRIMESTER,') $',ceiling(resu_IFE$CB_EP_PROM),' para no ser pobre. El ingreso promedio de una persona perteneciente a la EP es $',ceiling(resu_IFE$IT_EP_PROM),', y por lo tanto le faltan $',ceiling(resu_IFE$IFE_PROM),' para salir de la pobreza. Si consideramos el número total de personas en la EP en las regiones y edades seleccionadas, son necesarios $',ceiling(resu_IFE$IFE_EP),' para que todas las personas salgan de la situación de pobreza.',sep='')  
+    paste('La persona promedio perteneciente a la EP en las regiones consideradas, y en los periodos etarios elegidos necesita (en el año ',resu_IFE$YEAR,' y el trimestre ',resu_IFE$TRIMESTER,') $',ceiling(resu_IFE$CB_EP_PROM),' para no ser pobre. El ingreso promedio de una persona perteneciente a la EP es $',ceiling(resu_IFE$IT_EP_PROM),', y por lo tanto le faltan $',ceiling(resu_IFE$IFE_PROM),' para salir de la pobreza.')  
   })
+  
+  output$descarga_p2 <- downloadHandler(
+    filename = 'datos_pestaña2.csv',
+    content = function(file) write.csv(dataset_p2(),file,row.names=FALSE)
+  )
+  
 })

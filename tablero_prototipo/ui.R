@@ -18,9 +18,9 @@ shinyUI(navbarPage("La Economía Popular",
                checkboxInput("separar_zonas",
                              "¿Separar por zonas?",
                              value=FALSE),
-               checkboxInput("porcentaje_pea",
+               checkboxInput("usar_porcentaje_pea",
                              "¿Graficar como porcentaje de la PEA?",
-                             value=FALSE),
+                             value=TRUE),
                
                checkboxGroupInput("ocupaciones", 
                                   "¿Separar por ocupación?",
@@ -60,7 +60,9 @@ shinyUI(navbarPage("La Economía Popular",
                  multiple = FALSE,
                  selected = "QUINQUENIO"),
                
-               uiOutput("edades_posibles")
+               uiOutput("edades_posibles"),
+               
+               downloadButton("descarga_p1", "Descargar dataset")
                
              ),
              
@@ -121,7 +123,9 @@ shinyUI(navbarPage("La Economía Popular",
                  multiple = FALSE,
                  selected = "QUINQUENIO"),
                
-               uiOutput("edades_posibles_t2")
+               uiOutput("edades_posibles_t2"),
+               
+               downloadButton("descarga_p2", "Descargar dataset")
                
              ),
              
